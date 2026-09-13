@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreatForge SOC - Security Operations Center</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">&#9888;</span>
+                    <span class="logo-text">ThreatForge</span>
+                </div>
+                <span class="logo-subtitle">SOC Platform v1.0</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#/" class="nav-item active" data-page="dashboard">
+                    <span class="nav-icon">&#9632;</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#/alerts" class="nav-item" data-page="alerts">
+                    <span class="nav-icon">&#9888;</span>
+                    <span>Alerts</span>
+                    <span class="badge alert-count" id="alertBadge">0</span>
+                </a>
+                <a href="#/events" class="nav-item" data-page="events">
+                    <span class="nav-icon">&#9881;</span>
+                    <span>Events</span>
+                </a>
+                <a href="#/incidents" class="nav-item" data-page="incidents">
+                    <span class="nav-icon">&#9879;</span>
+                    <span>Incidents</span>
+                </a>
+                <a href="#/network" class="nav-item" data-page="network">
+                    <span class="nav-icon">&#8764;</span>
+                    <span>Network</span>
+                </a>
+                <a href="#/threats" class="nav-item" data-page="threats">
+                    <span class="nav-icon">&#9760;</span>
+                    <span>Threats</span>
+                </a>
+                <a href="#/forensics" class="nav-item" data-page="forensics">
+                    <span class="nav-icon">&#9874;</span>
+                    <span>Forensics</span>
+                </a>
+                <a href="#/logs" class="nav-item" data-page="logs">
+                    <span class="nav-icon">&#9776;</span>
+                    <span>Logs</span>
+                </a>
+                <a href="#/settings" class="nav-item" data-page="settings">
+                    <span class="nav-icon">&#9881;</span>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="connection-status" id="wsStatus">
+                    <span class="status-dot"></span>
+                    <span>Disconnected</span>
+                </div>
+                <div class="system-time" id="systemTime"></div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                    <span class="breadcrumb" id="breadcrumb">Home / Dashboard</span>
+                </div>
+                <div class="top-bar-right">
+                    <div class="search-box">
+                        <input type="text" placeholder="Search alerts, events, incidents..." id="globalSearch">
+                        <span class="search-shortcut">Enter</span>
+                    </div>
+                    <button class="btn btn-primary" id="refreshBtn">
+                        <span>&#8635;</span> Refresh
+                    </button>
+                    <button class="btn btn-secondary" id="scanBtn">
+                        <span>&#9881;</span> Quick Scan
+                    </button>
+                    <div class="user-info">
+                        <span class="user-avatar">SA</span>
+                        <div class="user-details">
+                            <span class="user-name">Security Analyst</span>
+                            <span class="user-role">Tier 2 SOC</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dynamic Content Area -->
+            <div class="content-area" id="contentArea">
+                <div class="loading-spinner" id="loadingSpinner" style="display:none;">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div class="modal" id="modalOverlay" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Modal Title</h2>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic modal content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Quick Actions Panel -->
+    <div class="quick-actions" id="quickActions" style="display:none;">
+        <div class="quick-actions-header">
+            <span>Quick Actions</span>
+            <button onclick="document.getElementById('quickActions').style.display='none'">&times;</button>
+        </div>
+        <div class="quick-actions-body">
+            <button class="quick-action-btn" onclick="window.ThreatForge.triggerScan()">
+                <span>&#9881;</span> Port Scan
+            </button>
+            <button class="quick-action-btn" onclick="window.ThreatForge.showCreateIncident()">
+                <span>&#9879;</span> New Incident
+            </button>
+            <button class="quick-action-btn" onclick="window.ThreatForge.showAddIOC()">
+                <span>&#9760;</span> Add IOC
+            </button>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Help -->
+    <div class="shortcuts-panel" id="shortcutsPanel" style="display:none;">
+        <h3>Keyboard Shortcuts</h3>
+        <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>K</kbd> - Focus Search</div>
+        <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>R</kbd> - Refresh Data</div>
+        <div class="shortcut-row"><kbd>1-9</kbd> - Navigate to Page</div>
+        <div class="shortcut-row"><kbd>Esc</kbd> - Close Modal</div>
+        <div class="shortcut-row"><kbd>?</kbd> - Show Shortcuts</div>
+    </div>
+
+    <!-- Page-Specific Templates (hidden, used by JS) -->
+    <template id="dashboardTemplate">
+        <div class="page-dashboard">
+            <div class="stats-grid">
+                <div class="stat-card critical">
+                    <div class="stat-icon">&#9888;</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Active Alerts</div>
+                        <div class="stat-value" id="statActiveAlerts">0</div>
+                        <div class="stat-change negative">
+                            <span class="trend-arrow">&#9650;</span> +3 last hour
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card high">
+                    <div class="stat-icon">&#9760;</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Critical Alerts</div>
+                        <div class="stat-value" id="statCriticalAlerts">0</div>
+                        <div class="stat-change negative">Requires immediate attention</div>
+                    </div>
+                </div>
+                <div class="stat-card medium">
+                    <div class="stat-icon">&#9881;</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Events</div>
+                        <div class="stat-value" id="statTotalEvents">0</div>
+                        <div class="stat-change positive">Monitoring active</div>
+                    </div>
+                </div>
+                <div class="stat-card low">
+                    <div class="stat-icon">&#9879;</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Open Incidents</div>
+                        <div class="stat-value" id="statOpenIncidents">0</div>
+                        <div class="stat-change">
+                            <span id="statTotalIncidents">0</span> total incidents
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card info">
+                    <div class="stat-icon">&#8764;</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Active Connections</div>
+                        <div class="stat-value" id="statActiveConnections">0</div>
+                        <div class="stat-change">Network monitored</div>
+                    </div>
+                </div>
+                <div class="stat-card high">
+                    <div class="stat-icon">&#9760;</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total IOCs</div>
+                        <div class="stat-value" id="statTotalIOCs">0</div>
+                        <div class="stat-change">Threat indicators active</div>
+                    </div>
+                </div>
+                <div class="stat-card medium">
+                    <div class="stat-icon">&#9776;</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Logs</div>
+                        <div class="stat-value" id="statTotalLogs">0</div>
+                        <div class="stat-change">System logs collected</div>
+                    </div>
+                </div>
+                <div class="stat-card low">
+                    <div class="stat-icon">&#10003;</div>
+                    <div class="stat-content">
+                        <div class="stat-label">System Health</div>
+                        <div class="stat-value" id="statSystemHealth">OK</div>
+                        <div class="stat-change positive">All systems operational</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Alerts Over Time (7 Days)</span>
+                        <div class="chart-actions">
+                            <button class="btn btn-sm btn-secondary">Daily</button>
+                            <button class="btn btn-sm btn-primary">Weekly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="alertsChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Top Threat Types</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="threatsChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Severity Distribution</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="severityChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Network Traffic (Inbound/Outbound)</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="networkChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-bottom">
+                <div class="table-container">
+                    <div class="table-header">
+                        <span class="table-title">Recent Alerts</span>
+                        <a href="#/alerts" class="btn btn-secondary btn-sm">View All Alerts</a>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Alert Title</th>
+                                <th>Severity</th>
+                                <th>Status</th>
+                                <th>Source</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentAlerts">
+                            <tr>
+                                <td colspan="6" class="empty-state">Loading alerts...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="recent-incidents">
+                    <div class="table-header">
+                        <span class="table-title">Active Incidents</span>
+                        <a href="#/incidents" class="btn btn-secondary btn-sm">View All</a>
+                    </div>
+                    <div id="recentIncidents" class="incident-list">
+                        <div class="empty-state">Loading incidents...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="alertsTemplate">
+        <div class="page-alerts">
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <select id="alertStatusFilter">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="acknowledged">Acknowledged</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Severity:</label>
+                    <select id="alertSevFilter">
+                        <option value="">All Severity</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                        <option value="info">Info</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Search:</label>
+                    <input type="text" id="alertSearchInput" placeholder="Filter alerts...">
+                </div>
+                <button class="btn btn-primary" onclick="window.ThreatForge.loadAlerts()">Apply Filters</button>
+            </div>
+
+            <div class="alert-stats">
+                <div class="alert-stat">
+                    <span class="alert-stat-label">Active:</span>
+                    <span class="alert-stat-value critical" id="activeAlertCount">0</span>
+                </div>
+                <div class="alert-stat">
+                    <span class="alert-stat-label">Acknowledged:</span>
+                    <span class="alert-stat-value warning" id="ackAlertCount">0</span>
+                </div>
+                <div class="alert-stat">
+                    <span class="alert-stat-label">Resolved:</span>
+                    <span class="alert-stat-value success" id="resolvedAlertCount">0</span>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">Security Alerts</span>
+                    <span class="table-subtitle" id="alertCount">0 alerts found</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAllAlerts"></th>
+                            <th>Alert Title</th>
+                            <th>Severity</th>
+                            <th>Status</th>
+                            <th>Source</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alertsTableBody">
+                        <tr>
+                            <td colspan="7" class="empty-state">Loading alerts...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination" id="alertsPagination"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="eventsTemplate">
+        <div class="page-events">
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label>Event Type:</label>
+                    <select id="eventTypeFilter">
+                        <option value="">All Types</option>
+                        <option value="login">Login</option>
+                        <option value="connection">Connection</option>
+                        <option value="process">Process</option>
+                        <option value="file">File</option>
+                        <option value="network">Network</option>
+                        <option value="dns">DNS</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Search:</label>
+                    <input type="text" id="eventSearchInput" placeholder="Search events...">
+                </div>
+                <button class="btn btn-primary" onclick="window.ThreatForge.loadEvents()">Search</button>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">Security Events</span>
+                    <span class="table-subtitle" id="eventCount">0 events found</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Event Type</th>
+                            <th>Source IP</th>
+                            <th>Destination IP</th>
+                            <th>Protocol</th>
+                            <th>Severity</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventsTableBody">
+                        <tr>
+                            <td colspan="6" class="empty-state">Loading events...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination" id="eventsPagination"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="incidentsTemplate">
+        <div class="page-incidents">
+            <div class="filter-bar">
+                <button class="btn btn-primary" onclick="window.ThreatForge.showCreateIncident()">
+                    <span>+</span> New Incident
+                </button>
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <select id="incidentStatusFilter">
+                        <option value="">All Status</option>
+                        <option value="open">Open</option>
+                        <option value="investigating">Investigating</option>
+                        <option value="contained">Contained</option>
+                        <option value="eradicated">Eradicated</option>
+                        <option value="recovered">Recovered</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Severity:</label>
+                    <select id="incidentSevFilter">
+                        <option value="">All Severity</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="incidents-grid" id="incidentsGrid">
+                <div class="empty-state">Loading incidents...</div>
+            </div>
+        </div>
+    </template>
+
+    <template id="networkTemplate">
+        <div class="page-network">
+            <div class="stats-grid">
+                <div class="stat-card info">
+                    <div class="stat-label">Active Connections</div>
+                    <div class="stat-value" id="netActiveConnections">0</div>
+                </div>
+                <div class="stat-card low">
+                    <div class="stat-label">Total Bytes Sent</div>
+                    <div class="stat-value" id="netBytesSent">0 B</div>
+                </div>
+                <div class="stat-card medium">
+                    <div class="stat-label">Total Bytes Received</div>
+                    <div class="stat-value" id="netBytesReceived">0 B</div>
+                </div>
+                <div class="stat-card high">
+                    <div class="stat-label">Anomalies Detected</div>
+                    <div class="stat-value" id="netAnomalies">0</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Top Talkers (Source IPs)</span>
+                    </div>
+                    <div class="table-container" style="border:none;">
+                        <table>
+                            <thead>
+                                <tr><th>IP Address</th><th>Total Bytes</th><th>Percentage</th></tr>
+                            </thead>
+                            <tbody id="topTalkersTable">
+                                <tr><td colspan="3" class="empty-state">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Active Connections</span>
+                    </div>
+                    <div class="table-container" style="border:none;">
+                        <table>
+                            <thead>
+                                <tr><th>Source</th><th>Destination</th><th>Protocol</th><th>Port</th></tr>
+                            </thead>
+                            <tbody id="connectionsTable">
+                                <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span class="chart-title">Protocol Distribution</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="protocolChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="threatsTemplate">
+        <div class="page-threats">
+            <div class="filter-bar">
+                <button class="btn btn-primary" onclick="window.ThreatForge.showAddIOC()">
+                    <span>+</span> Add IOC
+                </button>
+                <button class="btn btn-secondary" onclick="window.ThreatForge.showAddFeed()">
+                    <span>+</span> Add Threat Feed
+                </button>
+                <div class="filter-group">
+                    <label>IOC Type:</label>
+                    <select id="iocTypeFilter">
+                        <option value="">All Types</option>
+                        <option value="ip">IP Address</option>
+                        <option value="domain">Domain</option>
+                        <option value="hash">Hash</option>
+                        <option value="url">URL</option>
+                        <option value="email">Email</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="threats-summary">
+                <div class="threat-stat">
+                    <span class="threat-stat-label">Total IOCs:</span>
+                    <span class="threat-stat-value" id="totalIOCCount">0</span>
+                </div>
+                <div class="threat-stat">
+                    <span class="threat-stat-label">Critical:</span>
+                    <span class="threat-stat-value critical" id="criticalIOCCount">0</span>
+                </div>
+                <div class="threat-stat">
+                    <span class="threat-stat-label">High:</span>
+                    <span class="threat-stat-value high" id="highIOCCount">0</span>
+                </div>
+                <div class="threat-stat">
+                    <span class="threat-stat-label">Feeds Active:</span>
+                    <span class="threat-stat-value" id="activeFeedCount">0</span>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="table-container">
+                    <div class="table-header">
+                        <span class="table-title">Indicators of Compromise (IOCs)</span>
+                        <span class="table-subtitle" id="iocCount">0 IOCs</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Value</th>
+                                <th>Confidence</th>
+                                <th>Severity</th>
+                                <th>Source</th>
+                                <th>First Seen</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="iocsTableBody">
+                            <tr><td colspan="7" class="empty-state">Loading IOCs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <span class="table-title">Threat Intelligence Feeds</span>
+                        <span class="table-subtitle" id="feedCount">0 feeds</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feed Name</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Indicators</th>
+                                <th>Last Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feedsTableBody">
+                            <tr><td colspan="5" class="empty-state">Loading feeds...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="forensicsTemplate">
+        <div class="page-forensics">
+            <div class="forensics-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Artifact Analysis</span>
+                    </div>
+                    <div class="forensics-form">
+                        <div class="form-group">
+                            <label>Artifact Name</label>
+                            <input type="text" id="forensicArtifactName" placeholder="e.g., suspicious_file.exe">
+                        </div>
+                        <div class="form-group">
+                            <label>Artifact Type</label>
+                            <select id="forensicArtifactType">
+                                <option value="executable">Executable</option>
+                                <option value="document">Document</option>
+                                <option value="script">Script</option>
+                                <option value="network">Network Capture</option>
+                                <option value="memory">Memory Dump</option>
+                                <option value="registry">Registry Hive</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="window.ThreatForge.analyzeArtifact()">
+                            Analyze Artifact
+                        </button>
+                    </div>
+                    <div id="forensicAnalysisResult" class="analysis-result" style="display:none;">
+                        <!-- Analysis results will be displayed here -->
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Recent Analyses</span>
+                    </div>
+                    <div id="recentAnalyses" class="recent-analyses">
+                        <div class="empty-state">No recent analyses</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span class="chart-title">Forensics Toolkit</span>
+                </div>
+                <div class="toolkit-grid">
+                    <div class="toolkit-item">
+                        <span class="toolkit-icon">&#128270;</span>
+                        <span class="toolkit-name">File Analysis</span>
+                        <span class="toolkit-desc">Analyze suspicious files</span>
+                    </div>
+                    <div class="toolkit-item">
+                        <span class="toolkit-icon">&#128225;</span>
+                        <span class="toolkit-name">Memory Analysis</span>
+                        <span class="toolkit-desc">Inspect memory dumps</span>
+                    </div>
+                    <div class="toolkit-item">
+                        <span class="toolkit-icon">&#127760;</span>
+                        <span class="toolkit-name">Network Forensics</span>
+                        <span class="toolkit-desc">Analyze PCAP files</span>
+                    </div>
+                    <div class="toolkit-item">
+                        <span class="toolkit-icon">&#128190;</span>
+                        <span class="toolkit-name">Disk Forensics</span>
+                        <span class="toolkit-desc">Examine disk images</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="logsTemplate">
+        <div class="page-logs">
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label>Log Level:</label>
+                    <select id="logLevelFilter">
+                        <option value="">All Levels</option>
+                        <option value="INFO">INFO</option>
+                        <option value="WARNING">WARNING</option>
+                        <option value="ERROR">ERROR</option>
+                        <option value="DEBUG">DEBUG</option>
+                        <option value="CRITICAL">CRITICAL</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Source:</label>
+                    <select id="logSourceFilter">
+                        <option value="">All Sources</option>
+                        <option value="system">System</option>
+                        <option value="auth">Authentication</option>
+                        <option value="network">Network</option>
+                        <option value="threat-detector">Threat Detector</option>
+                        <option value="firewall">Firewall</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Search:</label>
+                    <input type="text" id="logSearchInput" placeholder="Search logs...">
+                </div>
+                <button class="btn btn-primary" onclick="window.ThreatForge.loadLogs()">Search</button>
+                <button class="btn btn-secondary" onclick="window.ThreatForge.exportLogs()">Export</button>
+            </div>
+
+            <div class="log-stats">
+                <div class="log-stat">
+                    <span class="log-stat-label">Total Logs:</span>
+                    <span class="log-stat-value" id="totalLogCount">0</span>
+                </div>
+                <div class="log-stat">
+                    <span class="log-stat-label">Errors:</span>
+                    <span class="log-stat-value error" id="errorLogCount">0</span>
+                </div>
+                <div class="log-stat">
+                    <span class="log-stat-label">Warnings:</span>
+                    <span class="log-stat-value warning" id="warningLogCount">0</span>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">System Logs</span>
+                    <span class="table-subtitle" id="logCount">0 logs found</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Level</th>
+                            <th>Source</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody">
+                        <tr><td colspan="4" class="empty-state">Loading logs...</td></tr>
+                    </tbody>
+                </table>
+                <div class="pagination" id="logsPagination"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="settingsTemplate">
+        <div class="page-settings">
+            <div class="settings-section">
+                <h2>Server Configuration</h2>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Server Port</div>
+                        <div class="setting-description">Port for the ThreatForge API server</div>
+                    </div>
+                    <input type="number" id="settingPort" value="8443" min="1024" max="65535"
+                           class="setting-input">
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Debug Mode</div>
+                        <div class="setting-description">Enable verbose logging for troubleshooting</div>
+                    </div>
+                    <div class="toggle" id="settingDebug" onclick="this.classList.toggle('active')"></div>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Auto-start Services</div>
+                        <div class="setting-description">Automatically start monitoring services on boot</div>
+                    </div>
+                    <div class="toggle active" id="settingAutostart" onclick="this.classList.toggle('active')"></div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h2>Alert Notifications</h2>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Email Notifications</div>
+                        <div class="setting-description">Send alert notifications via email</div>
+                    </div>
+                    <div class="toggle" id="settingEmail" onclick="this.classList.toggle('active')"></div>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Webhook Integration</div>
+                        <div class="setting-description">Send alerts to external webhook URL</div>
+                    </div>
+                    <div class="toggle" id="settingWebhook" onclick="this.classList.toggle('active')"></div>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Webhook URL</div>
+                        <div class="setting-description">URL to send webhook notifications</div>
+                    </div>
+                    <input type="url" id="settingWebhookUrl" placeholder="https://..."
+                           class="setting-input wide">
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">SMTP Server</div>
+                        <div class="setting-description">Email server for notifications</div>
+                    </div>
+                    <input type="text" id="settingSmtp" placeholder="smtp.example.com"
+                           class="setting-input">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h2>Threat Intelligence</h2>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Auto-Update Feeds</div>
+                        <div class="setting-description">Automatically update threat intelligence feeds</div>
+                    </div>
+                    <div class="toggle active" id="settingAutoUpdate" onclick="this.classList.toggle('active')"></div>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Feed Update Interval</div>
+                        <div class="setting-description">How often to check for feed updates</div>
+                    </div>
+                    <select id="settingFeedInterval" class="setting-select">
+                        <option value="900">15 minutes</option>
+                        <option value="1800">30 minutes</option>
+                        <option value="3600" selected>1 hour</option>
+                        <option value="21600">6 hours</option>
+                        <option value="86400">24 hours</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Enable IOC Enrichment</div>
+                        <div class="setting-description">Automatically enrich IOCs with external data</div>
+                    </div>
+                    <div class="toggle active" id="settingEnrichment" onclick="this.classList.toggle('active')"></div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h2>Network Monitoring</h2>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Packet Capture</div>
+                        <div class="setting-description">Enable network packet capture</div>
+                    </div>
+                    <div class="toggle active" id="settingPacketCapture" onclick="this.classList.toggle('active')"></div>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Capture Interface</div>
+                        <div class="setting-description">Network interface to monitor</div>
+                    </div>
+                    <select id="settingInterface" class="setting-select">
+                        <option value="">Auto-detect</option>
+                        <option value="eth0">eth0</option>
+                        <option value="ens33">ens33</option>
+                        <option value="wlan0">wlan0</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-label">Max Packets in Buffer</div>
+                        <div class="setting-description">Maximum packets to keep in memory</div>
+                    </div>
+                    <input type="number" id="settingMaxPackets" value="10000" min="1000" max="100000"
+                           class="setting-input">
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button class="btn btn-secondary" onclick="window.ThreatForge.resetSettings()">Reset to Defaults</button>
+                <button class="btn btn-primary" onclick="window.ThreatForge.saveSettings()">Save Settings</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- JavaScript Application -->
+    <script src="/static/app.js"></script>
+</body>
+</html>

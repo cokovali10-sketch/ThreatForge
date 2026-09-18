@@ -1,4 +1,4 @@
-"""Tests for ThreatForge SOC platform."""
+"""Tests for ThreatForge network module."""
 
 import os
 import tempfile

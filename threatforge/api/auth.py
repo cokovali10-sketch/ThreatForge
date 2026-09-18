@@ -1,17 +1,20 @@
 """Authentication middleware for ThreatForge SOC platform."""
 
-import time
 import hashlib
-import secrets
+import hmac
+import json
+import base64
+import time
 from typing import Optional, Callable
 from aiohttp import web
 
 
 class AuthMiddleware:
-    """API authentication middleware supporting API keys and tokens."""
+    """API authentication middleware supporting API keys and JWT tokens."""
 
-    def __init__(self, db=None):
+    def __init__(self, db=None, jwt_secret: str = ""):
         self.db = db
+        self.jwt_secret = jwt_secret
         self.public_paths = {
             "/api/health",
             "/api/stats",
@@ -22,7 +25,7 @@ class AuthMiddleware:
         if request.path in self.public_paths:
             return await handler(request)
 
-        api_key = request.headers.get("X-API-Key") or request.query.get("api_key")
+        api_key = request.headers.get("X-API-Key")
         if api_key and self._validate_api_key(api_key):
             request["user"] = self._get_user_by_api_key(api_key)
             return await handler(request)
@@ -40,13 +43,55 @@ class AuthMiddleware:
 
     def _validate_api_key(self, api_key: str) -> bool:
         if not self.db:
-            return len(api_key) > 0
+            return False
         user = self.db.get_user_by_api_key(api_key)
         return user is not None
 
     def _validate_token(self, token: str) -> bool:
+        if not self.jwt_secret:
+            return False
+
         parts = token.split(".")
-        return len(parts) == 3 and len(token) > 20
+        if len(parts) != 3:
+            return False
+
+        header_b64, payload_b64, sig_b64 = parts
+
+        signing_input = f"{header_b64}.{payload_b64}"
+        expected_sig = hmac.new(
+            self.jwt_secret.encode(),
+            signing_input.encode(),
+            hashlib.sha256,
+        ).digest()
+
+        try:
+            decoded_sig = base64.urlsafe_b64decode(sig_b64 + "==")
+        except Exception:
+            return False
+
+        if not hmac.compare_digest(decoded_sig, expected_sig):
+            return False
+
+        return self._check_token_expiry(payload_b64)
+
+    def _check_token_expiry(self, payload_b64: str) -> bool:
+        try:
+            padding = 4 - len(payload_b64) % 4
+            if padding != 4:
+                payload_b64 += "=" * padding
+            payload_bytes = base64.urlsafe_b64decode(payload_b64)
+            payload = json.loads(payload_bytes)
+
+            exp = payload.get("exp")
+            if exp is None:
+                return True
+
+            if isinstance(exp, (int, float)):
+                return time.time() < exp
+
+            return True
+        except Exception:
+            return False
 
     def _get_user_by_api_key(self, api_key: str) -> Optional[dict]:
         if not self.db:
@@ -54,7 +99,7 @@ class AuthMiddleware:
         return self.db.get_user_by_api_key(api_key)
 
 
-def setup_auth(app: web.Application, db=None) -> None:
+def setup_auth(app: web.Application, db=None, jwt_secret: str = "") -> None:
     """Setup authentication middleware on the app."""
-    auth = AuthMiddleware(db)
+    auth = AuthMiddleware(db, jwt_secret)
     app.middlewares.append(auth.middleware)

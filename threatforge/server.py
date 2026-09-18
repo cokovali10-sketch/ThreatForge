@@ -14,6 +14,7 @@ from aiohttp import web
 
 from threatforge.api.routes import setup_routes
 from threatforge.api.auth import setup_auth
+from threatforge.api.ratelimit import setup_rate_limiting
 from threatforge.core.config import Config
 from threatforge.core.database import Database
 from threatforge.core.logger import Logger
@@ -37,6 +38,7 @@ class ThreatForgeServer:
             self.cors_middleware,
         ])
         setup_auth(self.app, self.db)
+        setup_rate_limiting(self.app, max_requests=200, window_seconds=60)
         self._background_tasks = []
 
     @web.middleware
@@ -49,7 +51,8 @@ class ThreatForgeServer:
         except Exception as ex:
             self.logger.error(f"Unhandled error: {ex}")
             return web.json_response(
-                {"error": "Internal server error", "message": str(ex)}, status=500
+                {"error": "Internal server error"},
+                status=500,
             )
 
     @web.middleware

@@ -205,3 +205,32 @@ class Logger:
     def add_context(self, **context: Any) -> logging.LoggerAdapter:
         """Return a logger adapter with default context fields."""
         return logging.LoggerAdapter(self._logger, context)
+
+    def log_incident(self, incident_id: str, action: str, description: str = "") -> None:
+        """Log an incident action."""
+        self.info(
+            f"Incident {action}: {description}",
+            incident_id=incident_id,
+            action=action,
+        )
+
+    def log_threat(self, threat_type: str, value: str, confidence: int = 0) -> None:
+        """Log a threat detection."""
+        self.warning(
+            f"Threat detected: {threat_type} - {value} (confidence: {confidence}%)",
+            threat_type=threat_type,
+            value=value,
+            confidence=confidence,
+        )
+
+    def log_forensics(self, artifact_name: str, action: str) -> None:
+        """Log a forensics action."""
+        self.info(
+            f"Forensics: {action} on {artifact_name}",
+            artifact=artifact_name,
+            action=action,
+        )
+
+    def log_server(self, message: str) -> None:
+        """Log a server event."""
+        self.info(message)

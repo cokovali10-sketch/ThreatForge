@@ -13,6 +13,7 @@ from typing import Optional
 from aiohttp import web
 
 from threatforge.api.routes import setup_routes
+from threatforge.api.auth import setup_auth
 from threatforge.core.config import Config
 from threatforge.core.database import Database
 from threatforge.core.logger import Logger
@@ -35,6 +36,7 @@ class ThreatForgeServer:
             self.logging_middleware,
             self.cors_middleware,
         ])
+        setup_auth(self.app, self.db)
         self._background_tasks = []
 
     @web.middleware
@@ -64,25 +66,36 @@ class ThreatForgeServer:
             response = web.Response()
         else:
             response = await handler(request)
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        origin = request.headers.get("Origin", "*")
+        response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-API-Key"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
     async def _background_packet_capture(self) -> None:
         self.logger.log_server("Background packet capture started")
         while True:
-            await asyncio.sleep(5)
+            try:
+                await asyncio.sleep(5)
+            except asyncio.CancelledError:
+                break
 
     async def _background_threat_detection(self) -> None:
         self.logger.log_server("Background threat detection started")
         while True:
-            await asyncio.sleep(10)
+            try:
+                await asyncio.sleep(10)
+            except asyncio.CancelledError:
+                break
 
     async def _background_log_collection(self) -> None:
         self.logger.log_server("Background log collection started")
         while True:
-            await asyncio.sleep(15)
+            try:
+                await asyncio.sleep(15)
+            except asyncio.CancelledError:
+                break
 
     async def _seed_demo_data(self) -> None:
         existing = self.db.fetch_one("SELECT COUNT(*) as count FROM alerts")
@@ -90,7 +103,7 @@ class ThreatForgeServer:
             return
         self.logger.log_server("Seeding demo data...")
         severities = ["critical", "high", "medium", "low", "info"]
-        statuses = ["active", "acknowledged", "resolved"]
+        statuses = ["open", "investigating", "resolved"]
         alert_titles = [
             "Brute force login attempt detected",
             "Suspicious outbound DNS traffic",
@@ -106,22 +119,25 @@ class ThreatForgeServer:
         for i, title in enumerate(alert_titles):
             sev = severities[i % len(severities)]
             status = statuses[i % len(statuses)]
-            self.db.execute(
-                """INSERT INTO alerts (id, title, description, severity, source, status,
-                   created_at, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                (str(uuid.uuid4()), title, f"Automated detection: {title}",
-                 sev, "threat-detector", status, time.time() - (i * 3600), "{}"),
+            self.db.create_alert(
+                title=title,
+                description=f"Automated detection: {title}",
+                severity=sev,
+                status=status,
+                source_ip=f"192.168.1.{i + 1}",
+                category="automated",
             )
         event_types = ["login", "connection", "process", "file", "network", "dns"]
         for i in range(20):
             self.db.create_event(
                 event_type=event_types[i % len(event_types)],
+                source=f"scanner-{i % 5}",
                 source_ip=f"192.168.1.{i + 1}",
                 destination_ip=f"10.0.0.{(i % 254) + 1}",
                 source_port=1024 + i,
                 destination_port=[80, 443, 22, 53][i % 4],
                 protocol=["TCP", "UDP"][i % 2],
-                severity=severities[i % len(severities)],
+                risk_score=0.3 + (i % 5) * 0.15,
             )
         incident_titles = [
             "Active ransomware investigation",
@@ -134,22 +150,12 @@ class ThreatForgeServer:
                 title=title,
                 description=f"Incident response for: {title}",
                 severity=severities[i % len(severities)],
-                assigned_to="analyst_" + str(i + 1),
-            )
-        for i in range(15):
-            self.db.execute(
-                """INSERT INTO network_connections (id, source_ip, destination_ip,
-                   source_port, destination_port, protocol, bytes_sent, bytes_received,
-                   status, started_at, last_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (str(uuid.uuid4()), f"192.168.1.{i + 1}", f"10.0.0.{(i % 254) + 1}",
-                 1024 + i, [80, 443, 22, 53][i % 4], ["TCP", "UDP"][i % 2],
-                 (i + 1) * 1024, (i + 1) * 512, "active",
-                 time.time() - i * 60, time.time() - i * 10),
+                assignee="analyst_" + str(i + 1),
             )
         ioc_data = [
             ("ip", "185.220.101.45", 85, "critical", "Known TOR exit node"),
             ("domain", "malware-c2.evil.com", 90, "high", "C2 server domain"),
-            ("hash", "d41d8cd98f00b204e9800998ecf8427e", 75, "high", "Malware sample hash"),
+            ("hash_md5", "d41d8cd98f00b204e9800998ecf8427e", 75, "high", "Malware sample hash"),
             ("ip", "45.33.32.156", 60, "medium", "Suspicious SSH scanner"),
             ("url", "https://phishing.example.com/login", 95, "critical", "Phishing URL"),
         ]

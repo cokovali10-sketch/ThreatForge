@@ -309,6 +309,57 @@ class Database:
     CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
     CREATE INDEX IF NOT EXISTS idx_audit_resource ON audit_log(resource_type, resource_id);
     CREATE INDEX IF NOT EXISTS idx_audit_result ON audit_log(result);
+
+    CREATE TABLE IF NOT EXISTS playbooks (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        category TEXT,
+        steps TEXT DEFAULT '[]',
+        severity TEXT DEFAULT 'medium',
+        enabled INTEGER DEFAULT 1,
+        last_executed TEXT,
+        execution_count INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS threat_feeds (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        url TEXT NOT NULL,
+        feed_type TEXT NOT NULL,
+        update_interval INTEGER DEFAULT 3600,
+        enabled INTEGER DEFAULT 1,
+        last_updated TEXT,
+        ioc_count INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS network_connections (
+        id TEXT PRIMARY KEY,
+        timestamp TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        source_ip TEXT NOT NULL,
+        destination_ip TEXT NOT NULL,
+        source_port INTEGER,
+        destination_port INTEGER,
+        protocol TEXT,
+        status TEXT DEFAULT 'active',
+        bytes_sent INTEGER DEFAULT 0,
+        bytes_received INTEGER DEFAULT 0,
+        duration REAL DEFAULT 0,
+        process_name TEXT,
+        process_id INTEGER,
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        last_seen TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_playbooks_name ON playbooks(name);
+    CREATE INDEX IF NOT EXISTS idx_playbooks_category ON playbooks(category);
+    CREATE INDEX IF NOT EXISTS idx_threat_feeds_name ON threat_feeds(name);
+    CREATE INDEX IF NOT EXISTS idx_network_connections_source ON network_connections(source_ip);
+    CREATE INDEX IF NOT EXISTS idx_network_connections_dest ON network_connections(destination_ip);
+    CREATE INDEX IF NOT EXISTS idx_network_connections_status ON network_connections(status);
     """
 
     # ---- Alerts CRUD ----
@@ -1208,3 +1259,126 @@ class Database:
                 result[field_name] = self._deserialize(result[field_name])
 
         return result
+
+    # ---- Bridge Methods (for API compatibility) ----
+
+    def fetch_all(self, query: str, params: tuple = ()) -> list[dict]:
+        """Execute a raw query and return all results as dicts."""
+        conn = self._get_connection()
+        rows = conn.execute(query, params).fetchall()
+        return [self._row_to_dict(row) for row in rows]
+
+    def fetch_one(self, query: str, params: tuple = ()) -> Optional[dict]:
+        """Execute a raw query and return a single result as dict."""
+        conn = self._get_connection()
+        row = conn.execute(query, params).fetchone()
+        return self._row_to_dict(row) if row else None
+
+    def get_stats(self) -> dict:
+        """Get database statistics for dashboard."""
+        tables = {
+            "alerts": "alerts",
+            "events": "events",
+            "incidents": "incidents",
+            "packets": "packets",
+            "logs": "logs",
+            "ioc": "ioc",
+            "users": "users",
+            "audit_log": "audit_log",
+        }
+        stats = {"total_records": 0}
+        conn = self._get_connection()
+        for key, table in tables.items():
+            try:
+                row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+                count = row[0] if row else 0
+                stats[key] = count
+                stats["total_records"] += count
+            except Exception:
+                stats[key] = 0
+
+        try:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM alerts WHERE status = 'open'"
+            ).fetchone()
+            stats["open_alerts"] = row[0] if row else 0
+        except Exception:
+            stats["open_alerts"] = 0
+
+        try:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM incidents WHERE status != 'closed'"
+            ).fetchone()
+            stats["active_incidents"] = row[0] if row else 0
+        except Exception:
+            stats["active_incidents"] = 0
+
+        return stats
+
+    def add_ioc(self, ioc_type: str, value: str, confidence: int = 50,
+                severity: str = "medium", source: str = "",
+                description: str = "", tags: list = None) -> dict:
+        """Add an IOC (bridge method for API)."""
+        return self.create_ioc(
+            type=ioc_type,
+            value=value,
+            confidence=confidence,
+            severity=severity,
+            source=source,
+            threat_type=description,
+            tags=tags or [],
+        )
+
+    def remove_ioc(self, ioc_id: str) -> bool:
+        """Remove an IOC by ID."""
+        return self.delete_ioc(ioc_id)
+
+    def add_threat_feed(self, name: str, url: str, feed_type: str,
+                        update_interval: int = 3600) -> dict:
+        """Add a threat intelligence feed."""
+        feed_id = str(uuid.uuid4())
+        with self.cursor() as cur:
+            cur.execute(
+                """INSERT INTO threat_feeds (id, name, url, feed_type, update_interval, enabled, last_updated)
+                   VALUES (?, ?, ?, ?, ?, 1, NULL)""",
+                (feed_id, name, url, feed_type, update_interval),
+            )
+        return {"id": feed_id, "name": name, "url": url, "feed_type": feed_type}
+
+    def log_incident(self, incident_id: str, action: str, description: str = "") -> None:
+        """Log an incident action to the audit trail."""
+        self.create_audit_log(
+            action=f"incident.{action}",
+            resource_type="incident",
+            resource_id=incident_id,
+            details={"description": description},
+        )
+
+    def log_threat(self, threat_type: str, value: str, confidence: int = 0) -> None:
+        """Log a threat detection."""
+        self.create_log(
+            source="threat_detector",
+            level="warning",
+            category="threat_detection",
+            message=f"Threat detected: {threat_type} - {value}",
+            details={"threat_type": threat_type, "value": value, "confidence": confidence},
+        )
+
+    def log_forensics(self, artifact_name: str, action: str) -> None:
+        """Log a forensics action."""
+        self.create_log(
+            source="forensics",
+            level="info",
+            category="forensics",
+            message=f"Forensics: {action} on {artifact_name}",
+            details={"artifact": artifact_name, "action": action},
+        )
+
+    def log_server(self, message: str) -> None:
+        """Log a server event."""
+        self.create_log(
+            source="server",
+            level="info",
+            category="server",
+            message=message,
+        )

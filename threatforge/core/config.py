@@ -6,6 +6,84 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 
+class LoggingConfig:
+    """Logging configuration with proper attribute access."""
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    @property
+    def level(self) -> str:
+        return self._data.get("level", "INFO")
+
+    @property
+    def enable_console(self) -> bool:
+        return self._data.get("enable_console", True)
+
+    @property
+    def enable_file(self) -> bool:
+        return self._data.get("enable_file", True)
+
+    @property
+    def enable_syslog(self) -> bool:
+        return self._data.get("enable_syslog", False)
+
+    @property
+    def format(self) -> str:
+        return self._data.get("format", "text")
+
+    @property
+    def log_dir(self) -> str:
+        return self._data.get("log_dir", "logs")
+
+    @property
+    def filename(self) -> str:
+        return self._data.get("filename", "threatforge.log")
+
+    @property
+    def max_bytes(self) -> int:
+        return self._data.get("max_bytes", 10485760)
+
+    @property
+    def backup_count(self) -> int:
+        return self._data.get("backup_count", 5)
+
+    @property
+    def json_indent(self) -> int:
+        return self._data.get("json_indent", 2)
+
+    @property
+    def syslog_address(self) -> str:
+        return self._data.get("syslog_address", "/dev/log")
+
+
+class DatabaseConfig:
+    """Database configuration with proper attribute access."""
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    @property
+    def path(self) -> str:
+        return self._data.get("path", "data/threatforge.db")
+
+    @property
+    def backup_path(self) -> str:
+        return self._data.get("backup_path", "data/backups")
+
+    @property
+    def busy_timeout(self) -> int:
+        return self._data.get("busy_timeout", 5000)
+
+    @property
+    def journal_size_limit(self) -> int:
+        return self._data.get("journal_size_limit", 67108864)
+
+    @property
+    def cache_size(self) -> int:
+        return self._data.get("cache_size", -64000)
+
+
 class Config:
     """Central configuration manager for ThreatForge."""
 
@@ -21,13 +99,24 @@ class Config:
         },
         "database": {
             "path": "data/threatforge.db",
+            "backup_path": "data/backups",
             "backup_interval": 3600,
+            "busy_timeout": 5000,
+            "journal_size_limit": 67108864,
+            "cache_size": -64000,
         },
         "logging": {
             "level": "INFO",
-            "file": "logs/threatforge.log",
-            "max_size": 10485760,
+            "enable_console": True,
+            "enable_file": True,
+            "enable_syslog": False,
+            "format": "text",
+            "log_dir": "logs",
+            "filename": "threatforge.log",
+            "max_bytes": 10485760,
             "backup_count": 5,
+            "json_indent": 2,
+            "syslog_address": "/dev/log",
         },
         "network": {
             "interface": None,
@@ -111,6 +200,14 @@ class Config:
     @property
     def database_path(self) -> str:
         return self.get("database.path", "data/threatforge.db")
+
+    @property
+    def database(self) -> DatabaseConfig:
+        return DatabaseConfig(self._config.get("database", {}))
+
+    @property
+    def logging(self) -> LoggingConfig:
+        return LoggingConfig(self._config.get("logging", {}))
 
     @property
     def debug(self) -> bool:

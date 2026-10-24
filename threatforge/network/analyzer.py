@@ -9,11 +9,16 @@ import time
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Optional
 
 from threatforge.core.config import Config
 from threatforge.core.logger import Logger
+# --- константы вынесены FORGE refactor ---
+CONST_3 = 3
+CONST_60 = 60
+CONST_300 = 300
+CONST_3600 = 3600
+
 
 
 @dataclass
@@ -67,7 +72,7 @@ class Connection:
             "state": self.state,
             "first_seen": self.first_seen,
             "last_seen": self.last_seen,
-            "duration": round(self.duration, 3),
+            "duration": round(self.duration, CONST_3),
             "packets_sent": self.packets_sent,
             "packets_received": self.packets_received,
             "bytes_sent": self.bytes_sent,
@@ -104,7 +109,7 @@ class TrafficFlow:
             "connection_count": self.connection_count,
             "first_seen": self.first_seen,
             "last_seen": self.last_seen,
-            "duration": round(self.last_seen - self.first_seen, 3) if self.last_seen > self.first_seen else 0,
+            "duration": round(self.last_seen - self.first_seen, CONST_3) if self.last_seen > self.first_seen else 0,
             "ports": list(self.port_pairs),
         }
 
@@ -176,10 +181,10 @@ class NetworkAnalyzer:
 
         self._config_anomaly = {
             "port_scan_threshold": 25,
-            "port_scan_window": 60,
+            "port_scan_window": CONST_60,
             "bandwidth_spike_multiplier": 5.0,
             "connection_rate_threshold": 100,
-            "connection_rate_window": 60,
+            "connection_rate_window": CONST_60,
             "large_transfer_threshold": 1073741824,
             "new_port_threshold": 10,
         }
@@ -303,8 +308,8 @@ class NetworkAnalyzer:
         sample.bytes_out += length
         sample.packets_out += 1
 
-        if len(self._bandwidth_samples) > 3600:
-            self._bandwidth_samples = self._bandwidth_samples[-3600:]
+        if len(self._bandwidth_samples) > CONST_3600:
+            self._bandwidth_samples = self._bandwidth_samples[-CONST_3600:]
 
     def _detect_anomalies(
         self, src_ip: str, dst_ip: str, src_port: Optional[int],
@@ -361,14 +366,14 @@ class NetworkAnalyzer:
 
     def _detect_bandwidth_spike(self, length: int, timestamp: float) -> None:
         """Detect bandwidth spikes relative to baseline."""
-        if len(self._bandwidth_samples) < 60:
+        if len(self._bandwidth_samples) < CONST_60:
             return
 
         recent_window = 10
         recent_samples = self._bandwidth_samples[-recent_window:]
         avg_recent = sum(s.total_bytes for s in recent_samples) / recent_window
 
-        baseline_window = 60
+        baseline_window = CONST_60
         baseline_samples = self._bandwidth_samples[-baseline_window:-recent_window]
         if not baseline_samples:
             return
@@ -468,7 +473,7 @@ class NetworkAnalyzer:
         flows.sort(key=lambda f: f.total_bytes, reverse=True)
         return [f.to_dict() for f in flows[:limit]]
 
-    def get_bandwidth_history(self, duration_seconds: int = 300) -> list[dict]:
+    def get_bandwidth_history(self, duration_seconds: int = CONST_300) -> list[dict]:
         """Get bandwidth usage history."""
         cutoff = time.time() - duration_seconds
         samples = [s for s in self._bandwidth_samples if s.timestamp > cutoff]
@@ -569,7 +574,7 @@ class NetworkAnalyzer:
             ),
         }
 
-    def cleanup_stale_connections(self, timeout: float = 300.0) -> int:
+    def cleanup_stale_connections(self, timeout: float = CONST_300) -> int:
         """Remove connections that haven't seen activity within timeout."""
         now = time.time()
         stale_keys = [

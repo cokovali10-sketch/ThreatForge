@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import re
 import uuid
 from collections import defaultdict
@@ -8,6 +7,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Callable
+# --- константы вынесены FORGE refactor ---
+CONST_5 = 5
+CONST_60 = 60
+CONST_1024 = 1024
+
 
 
 class Severity(Enum):
@@ -291,7 +295,7 @@ class ThreatDetector:
             raw_event=event,
         )
 
-    def check_brute_force(self, events: list[dict], threshold: int = 5, window_seconds: int = 300) -> list[Alert]:
+    def check_brute_force(self, events: list[dict], threshold: int = CONST_5, window_seconds: int = 300) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("BRUTE_FORCE_001")
         if not rule or not rule.enabled:
@@ -314,7 +318,7 @@ class ThreatDetector:
                     timestamp=datetime.utcnow(),
                     mitre_tactic=rule.mitre_tactic,
                     mitre_technique=rule.mitre_technique,
-                    raw_event={"attempts": failed_events[-5:]},
+                    raw_event={"attempts": failed_events[-CONST_5:]},
                 )
                 alerts.append(alert)
                 self.alerts.append(alert)
@@ -322,7 +326,7 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_port_scan(self, events: list[dict], port_threshold: int = 10, window_seconds: int = 60) -> list[Alert]:
+    def check_port_scan(self, events: list[dict], port_threshold: int = 10, window_seconds: int = CONST_60) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("PORT_SCAN_002")
         if not rule or not rule.enabled:
@@ -383,7 +387,7 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_c2_beacon(self, connections: list[dict], interval_tolerance: float = 0.3, min_beacons: int = 5) -> list[Alert]:
+    def check_c2_beacon(self, connections: list[dict], interval_tolerance: float = 0.3, min_beacons: int = CONST_5) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("C2_BEACON_004")
         if not rule or not rule.enabled:
@@ -459,7 +463,7 @@ class ThreatDetector:
             return alerts
         for event in events:
             bytes_transferred = event.get("bytes_transferred", 0)
-            size_mb = bytes_transferred / (1024 * 1024)
+            size_mb = bytes_transferred / (CONST_1024 * CONST_1024)
             if size_mb > size_threshold_mb:
                 alert = Alert(
                     alert_id=str(uuid.uuid4()),
@@ -750,7 +754,7 @@ class ThreatDetector:
             return alerts
         for event in events:
             bytes_transferred = event.get("bytes_transferred", 0)
-            size_mb = bytes_transferred / (1024 * 1024)
+            size_mb = bytes_transferred / (CONST_1024 * CONST_1024)
             if size_mb > threshold_mb:
                 alert = Alert(
                     alert_id=str(uuid.uuid4()),
@@ -771,7 +775,7 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_scanning_activity(self, events: list[dict], target_threshold: int = 5) -> list[Alert]:
+    def check_scanning_activity(self, events: list[dict], target_threshold: int = CONST_5) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("SCAN_ACT_017")
         if not rule or not rule.enabled:
@@ -869,7 +873,7 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_api_abuse(self, events: list[dict], rate_threshold: int = 100, window_seconds: int = 60) -> list[Alert]:
+    def check_api_abuse(self, events: list[dict], rate_threshold: int = 100, window_seconds: int = CONST_60) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("API_ABUSE_020")
         if not rule or not rule.enabled:

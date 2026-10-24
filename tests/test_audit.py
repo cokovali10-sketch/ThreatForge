@@ -5,6 +5,9 @@ import os
 import tempfile
 import pytest
 from threatforge.core.audit import AuditTrail, AuditAction, AuditEntry
+# --- константы вынесены FORGE refactor ---
+CONST_3 = 3
+
 
 
 @pytest.fixture
@@ -84,8 +87,8 @@ class TestAuditTrail:
     def test_get_recent(self, audit_db):
         for i in range(5):
             audit_db.log(AuditAction.LOGIN, f"user{i}")
-        recent = audit_db.get_recent(limit=3)
-        assert len(recent) == 3
+        recent = audit_db.get_recent(limit=CONST_3)
+        assert len(recent) == CONST_3
 
     def test_persistence(self, audit_db):
         audit_db.log(AuditAction.LOGIN, "user1")

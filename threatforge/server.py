@@ -3,12 +3,8 @@
 import argparse
 import asyncio
 import logging
-import os
-import sys
 import time
-import uuid
 from pathlib import Path
-from typing import Optional
 
 from aiohttp import web
 
@@ -18,12 +14,18 @@ from threatforge.api.ratelimit import setup_rate_limiting
 from threatforge.core.config import Config
 from threatforge.core.database import Database
 from threatforge.core.logger import Logger
+# --- константы вынесены FORGE refactor ---
+CONST_4 = 4
+CONST_5 = 5
+CONST_60 = 60
+CONST_8443 = 8443
+
 
 
 class ThreatForgeServer:
     """Main aiohttp server for ThreatForge."""
 
-    def __init__(self, host: str = "0.0.0.0", port: int = 8443,
+    def __init__(self, host: str = "0.0.0.0", port: int = CONST_8443,
                  database_path: str = None) -> None:
         self.config = Config()
         if database_path:
@@ -38,7 +40,7 @@ class ThreatForgeServer:
             self.cors_middleware,
         ])
         setup_auth(self.app, self.db)
-        setup_rate_limiting(self.app, max_requests=200, window_seconds=60)
+        setup_rate_limiting(self.app, max_requests=200, window_seconds=CONST_60)
         self._background_tasks = []
 
     @web.middleware
@@ -80,7 +82,7 @@ class ThreatForgeServer:
         self.logger.log_server("Background packet capture started")
         while True:
             try:
-                await asyncio.sleep(5)
+                await asyncio.sleep(CONST_5)
             except asyncio.CancelledError:
                 break
 
@@ -134,13 +136,13 @@ class ThreatForgeServer:
         for i in range(20):
             self.db.create_event(
                 event_type=event_types[i % len(event_types)],
-                source=f"scanner-{i % 5}",
+                source=f"scanner-{i % CONST_5}",
                 source_ip=f"192.168.1.{i + 1}",
                 destination_ip=f"10.0.0.{(i % 254) + 1}",
                 source_port=1024 + i,
-                destination_port=[80, 443, 22, 53][i % 4],
+                destination_port=[80, 443, 22, 53][i % CONST_4],
                 protocol=["TCP", "UDP"][i % 2],
-                risk_score=0.3 + (i % 5) * 0.15,
+                risk_score=0.3 + (i % CONST_5) * 0.15,
             )
         incident_titles = [
             "Active ransomware investigation",
@@ -159,11 +161,11 @@ class ThreatForgeServer:
             ("ip", "185.220.101.45", 85, "critical", "Known TOR exit node"),
             ("domain", "malware-c2.evil.com", 90, "high", "C2 server domain"),
             ("hash_md5", "d41d8cd98f00b204e9800998ecf8427e", 75, "high", "Malware sample hash"),
-            ("ip", "45.33.32.156", 60, "medium", "Suspicious SSH scanner"),
+            ("ip", "45.33.32.156", CONST_60, "medium", "Suspicious SSH scanner"),
             ("url", "https://phishing.example.com/login", 95, "critical", "Phishing URL"),
         ]
         for ioc in ioc_data:
-            self.db.add_ioc(ioc[0], ioc[1], ioc[2], ioc[3], "threat-intel", ioc[4])
+            self.db.add_ioc(ioc[0], ioc[1], ioc[2], ioc[3], "threat-intel", ioc[CONST_4])
         self.logger.log_server("Demo data seeded successfully")
 
     async def start_background_tasks(self) -> None:
@@ -218,7 +220,7 @@ Examples:
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
     serve_parser = subparsers.add_parser("serve", help="Start the ThreatForge server")
     serve_parser.add_argument("-H", "--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
-    serve_parser.add_argument("-p", "--port", type=int, default=8443, help="Port to listen on (default: 8443)")
+    serve_parser.add_argument("-p", "--port", type=int, default=CONST_8443, help="Port to listen on (default: 8443)")
     serve_parser.add_argument("--db", default=None, help="Database file path")
     serve_parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     subparsers.add_parser("version", help="Show version information")

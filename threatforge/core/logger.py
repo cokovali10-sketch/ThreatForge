@@ -8,7 +8,6 @@ Provides JSON-formatted logging with rotation, multiple outputs
 import json
 import logging
 import logging.handlers
-import os
 import sys
 import traceback
 from datetime import datetime, timezone

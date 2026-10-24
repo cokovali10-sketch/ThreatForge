@@ -5,6 +5,20 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any
+# --- константы вынесены FORGE refactor ---
+CONST_3 = 3
+CONST_4 = 4
+CONST_5 = 5
+CONST_6 = 6
+CONST_15 = 15
+CONST_20 = 20
+CONST_30 = 30
+CONST_45 = 45
+CONST_60 = 60
+CONST_120 = 120
+CONST_180 = 180
+CONST_240 = 240
+
 
 
 class PlaybookPhase(Enum):
@@ -28,7 +42,7 @@ class PlaybookStep:
     contacts: list[str] = field(default_factory=list)
     containment_actions: list[str] = field(default_factory=list)
     expected_outcome: str = ""
-    estimated_duration_minutes: int = 15
+    estimated_duration_minutes: int = CONST_15
     requires_approval: bool = False
     approval_role: str = ""
 
@@ -91,7 +105,7 @@ class PlaybookManager:
                 tools=["EDR console", "Volatility", "disk forensic tools"],
                 commands=["vssadmin list shadows", "wmic shadowcopy list brief"],
                 expected_outcome="Confirm ransomware variant and scope of encryption",
-                estimated_duration_minutes=15,
+                estimated_duration_minutes=CONST_15,
             ),
             PlaybookStep(
                 step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
@@ -110,7 +124,7 @@ class PlaybookManager:
                 approval_role="SOC Manager",
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=3,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=CONST_3,
                 title="Preserve evidence",
                 description="Collect memory dumps and critical logs before eradication",
                 tools=["WinPmem", "FTK Imager", "Log Collector"],
@@ -120,18 +134,18 @@ class PlaybookManager:
                     "wevtutil epl System system.evtx",
                 ],
                 expected_outcome="Forensic images and logs preserved for investigation",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=4,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
                 title="Identify ransomware variant",
                 description="Use ID Ransomware or No More Ransom to identify the variant and check for decryptors",
                 tools=["ID Ransomware", "No More Ransom", "VirusTotal"],
                 expected_outcome="Ransomware variant identified, decryption availability determined",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=5,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_5,
                 title="Remove malware artifacts",
                 description="Delete ransomware executables, scheduled tasks, and persistence mechanisms",
                 tools=["EDR console", "Autoruns", "PowerShell"],
@@ -140,10 +154,10 @@ class PlaybookManager:
                     "Remove-Item -Path $env:TEMP\\*.exe -Force",
                 ],
                 expected_outcome="All malware artifacts removed from affected systems",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=6,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_6,
                 title="Restore from backups",
                 description="Rebuild systems from known-good backups after verifying backup integrity",
                 tools=["Backup solution", "System imaging tools"],
@@ -152,7 +166,7 @@ class PlaybookManager:
                     "wbadmin start systemstaterecovery -version:<version>",
                 ],
                 expected_outcome="Systems restored to pre-incident state",
-                estimated_duration_minutes=240,
+                estimated_duration_minutes=CONST_240,
             ),
             PlaybookStep(
                 step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=7,
@@ -170,7 +184,7 @@ class PlaybookManager:
                     "Apply emergency patches",
                 ],
                 expected_outcome="All credentials rotated and systems hardened",
-                estimated_duration_minutes=120,
+                estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
                 step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=8,
@@ -178,7 +192,7 @@ class PlaybookManager:
                 description="Document findings, timeline, and improvements for future prevention",
                 tools=["Documentation templates"],
                 expected_outcome="Lessons learned document completed with actionable recommendations",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
         ]
         total_duration = sum(s.estimated_duration_minutes for s in steps)
@@ -202,7 +216,7 @@ class PlaybookManager:
                 description="Examine email headers, URLs, and attachments for malicious indicators",
                 tools=["Email gateway", "URLScan.io", "VirusTotal", "sandbox"],
                 expected_outcome="Phishing email analyzed, IOCs extracted",
-                estimated_duration_minutes=20,
+                estimated_duration_minutes=CONST_20,
             ),
             PlaybookStep(
                 step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
@@ -219,15 +233,15 @@ class PlaybookManager:
                 estimated_duration_minutes=10,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=3,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=CONST_3,
                 title="Identify and reset compromised accounts",
                 description="Find users who clicked links or submitted credentials and reset their accounts",
                 tools=["Email gateway logs", "AD console", "SSO logs"],
                 expected_outcome="All potentially compromised accounts identified and reset",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=4,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
                 title="Remove malicious content",
                 description="Delete phishing emails from all mailboxes and remove any installed malware",
                 tools=["Email admin console", "EDR", "PowerShell"],
@@ -235,23 +249,23 @@ class PlaybookManager:
                     "Get-Mailbox -ResultSize Unlimited | Search-Mailbox -SearchQuery 'Subject:\"Phishing Subject\"' -DeleteContent",
                 ],
                 expected_outcome="All phishing content removed from environment",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=5,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
                 title="Verify and restore",
                 description="Verify no persistent access was gained and restore any affected services",
                 tools=["EDR", "AD audit tools"],
                 expected_outcome="Environment verified clean, services restored",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=6,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
                 title="Security awareness follow-up",
                 description="Update training materials and conduct targeted awareness for affected users",
                 tools=["Security awareness platform"],
                 expected_outcome="Training materials updated, affected users retrained",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
         ]
         total_duration = sum(s.estimated_duration_minutes for s in steps)
@@ -275,7 +289,7 @@ class PlaybookManager:
                 description="Verify that sensitive data has been accessed or exfiltrated",
                 tools=["DLP console", "Database audit logs", "Network forensic tools"],
                 expected_outcome="Breach confirmed with scope of affected data",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
                 step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
@@ -289,40 +303,40 @@ class PlaybookManager:
                     "Disable compromised service accounts",
                 ],
                 expected_outcome="Data exfiltration stopped, affected systems isolated",
-                estimated_duration_minutes=15,
+                estimated_duration_minutes=CONST_15,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=3,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=CONST_3,
                 title="Assess data exposure",
                 description="Determine what data was accessed, volume, and sensitivity classification",
                 tools=["Database logs", "DLP logs", "Cloud access logs"],
                 expected_outcome="Complete assessment of exposed data types and volume",
-                estimated_duration_minutes=120,
+                estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=4,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
                 title="Eradicate threat actor",
                 description="Remove all threat actor access and persistence mechanisms",
                 tools=["EDR", "AD audit tools", "Cloud IAM"],
                 expected_outcome="Threat actor access fully removed",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=5,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
                 title="Notify stakeholders",
                 description="Execute notification procedures per legal and regulatory requirements",
                 tools=["Legal counsel", "PR team", "Regulatory filing tools"],
                 contacts=["Legal", "Compliance", "Public Relations", "Executive Team"],
                 expected_outcome="All required notifications completed within regulatory timelines",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=6,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
                 title="Post-breach review",
                 description="Conduct comprehensive review and update data protection controls",
                 tools=["Documentation templates", "Risk assessment tools"],
                 expected_outcome="Post-breach report with remediation plan completed",
-                estimated_duration_minutes=120,
+                estimated_duration_minutes=CONST_120,
             ),
         ]
         total_duration = sum(s.estimated_duration_minutes for s in steps)
@@ -346,7 +360,7 @@ class PlaybookManager:
                 description="Correlate behavioral indicators with technical evidence to confirm insider threat",
                 tools=["UEBA", "DLP", "SIEM", "HR records"],
                 expected_outcome="Insider threat validated with supporting evidence",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
                 step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
@@ -360,40 +374,40 @@ class PlaybookManager:
                     "Coordinate with HR and Legal",
                 ],
                 expected_outcome="Insider threat contained discreetly",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=3,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_3,
                 title="Collect evidence for HR/legal",
                 description="Preserve all evidence in forensically sound manner for potential legal action",
                 tools=["Forensic imaging tools", "Log archival"],
                 expected_outcome="Evidence collected and chain of custody maintained",
-                estimated_duration_minutes=120,
+                estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=4,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
                 title="Execute separation",
                 description="Coordinate with HR for employee separation and access revocation",
                 tools=["AD console", "Badge system", "VPN system"],
                 contacts=["HR", "Legal", "Physical Security"],
                 expected_outcome="Employee separated, all access revoked",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=5,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
                 title="Assess and remediate damage",
                 description="Evaluate what data or systems were compromised and remediate",
                 tools=["DLP", "Database audit", "EDR"],
                 expected_outcome="All insider damage assessed and remediated",
-                estimated_duration_minutes=180,
+                estimated_duration_minutes=CONST_180,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=6,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
                 title="Improve insider threat program",
                 description="Update detection rules, policies, and controls based on findings",
                 tools=["SIEM", "Policy templates"],
                 expected_outcome="Insider threat program enhanced with lessons learned",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
         ]
         total_duration = sum(s.estimated_duration_minutes for s in steps)
@@ -432,31 +446,31 @@ class PlaybookManager:
                     "Scale infrastructure horizontally",
                 ],
                 expected_outcome="DDoS mitigation activated, traffic being scrubbed",
-                estimated_duration_minutes=15,
+                estimated_duration_minutes=CONST_15,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=3,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=CONST_3,
                 title="Protect critical services",
                 description="Ensure critical services remain available through failover and prioritization",
                 tools=["Load balancer", "DNS management", "Cloud auto-scaling"],
                 expected_outcome="Critical services maintained during attack",
-                estimated_duration_minutes=15,
+                estimated_duration_minutes=CONST_15,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=4,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_4,
                 title="Monitor and tune mitigation",
                 description="Continuously monitor attack traffic and tune mitigation rules",
                 tools=["DDoS dashboard", "NetFlow", "WAF console"],
                 expected_outcome="Attack traffic effectively mitigated",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=5,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_5,
                 title="Post-attack review",
                 description="Document attack characteristics and improve DDoS resilience",
                 tools=["Documentation templates"],
                 expected_outcome="DDoS resilience improved based on attack learnings",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
         ]
         total_duration = sum(s.estimated_duration_minutes for s in steps)
@@ -480,7 +494,7 @@ class PlaybookManager:
                 description="Determine malware family, infection vector, and breadth of compromise",
                 tools=["EDR", "Sandbox", "VirusTotal", "YARA rules"],
                 expected_outcome="Malware identified, infection vector determined",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
                 step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
@@ -494,10 +508,10 @@ class PlaybookManager:
                     "Disable auto-run for removable media",
                 ],
                 expected_outcome="Infected systems isolated, C2 blocked",
-                estimated_duration_minutes=15,
+                estimated_duration_minutes=CONST_15,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=3,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_3,
                 title="Remove malware and persistence",
                 description="Delete malware binaries, registry entries, scheduled tasks, and other persistence mechanisms",
                 tools=["EDR", "Autoruns", "PowerShell", "Malware removal tools"],
@@ -506,23 +520,23 @@ class PlaybookManager:
                     "Remove-Item -Recurse -Force $env:TEMP\\malware_dir",
                 ],
                 expected_outcome="Malware fully removed from all affected systems",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=4,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_4,
                 title="Verify clean state",
                 description="Scan all systems to verify malware removal and check for secondary payloads",
                 tools=["EDR full scan", "Anti-malware scan", "File integrity monitoring"],
                 expected_outcome="All systems verified clean",
-                estimated_duration_minutes=120,
+                estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=5,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_5,
                 title="Update defenses",
                 description="Create detection signatures and update security controls based on findings",
                 tools=["SIEM", "EDR policy", "Firewall rules"],
                 expected_outcome="Detection and prevention capabilities updated",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
         ]
         total_duration = sum(s.estimated_duration_minutes for s in steps)
@@ -546,7 +560,7 @@ class PlaybookManager:
                 description="Determine which accounts are compromised and how the compromise occurred",
                 tools=["SIEM", "Azure AD logs", "VPN logs", "Email logs"],
                 expected_outcome="Compromised accounts identified with compromise vector",
-                estimated_duration_minutes=20,
+                estimated_duration_minutes=CONST_20,
             ),
             PlaybookStep(
                 step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
@@ -563,15 +577,15 @@ class PlaybookManager:
                 estimated_duration_minutes=10,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=3,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=CONST_3,
                 title="Assess attacker actions",
                 description="Review logs to determine what actions the attacker performed",
                 tools=["SIEM", "CloudTrail", "Azure AD audit logs"],
                 expected_outcome="Complete timeline of attacker actions compiled",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=4,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
                 title="Remove attacker persistence",
                 description="Remove any backdoors, forwarding rules, or OAuth apps created by attacker",
                 tools=["AD console", "Azure AD", "Exchange admin"],
@@ -580,23 +594,23 @@ class PlaybookManager:
                     "Get-AzADApplication | Where-Object {$_.CreatedDateTime -gt $attackStart}",
                 ],
                 expected_outcome="All attacker persistence mechanisms removed",
-                estimated_duration_minutes=45,
+                estimated_duration_minutes=CONST_45,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=5,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
                 title="Restore and harden",
                 description="Re-enable accounts with new credentials and apply additional security controls",
                 tools=["AD console", "MFA system"],
                 expected_outcome="Accounts restored with enhanced security controls",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=6,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
                 title="Improve detection",
                 description="Create detection rules for the observed attack pattern",
                 tools=["SIEM", "SOAR platform"],
                 expected_outcome="Detection rules updated for account compromise patterns",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
         ]
         total_duration = sum(s.estimated_duration_minutes for s in steps)
@@ -620,7 +634,7 @@ class PlaybookManager:
                 description="Identify all systems the attacker has accessed and the techniques used",
                 tools=["SIEM", "EDR", "Network forensic tools", "BloodHound"],
                 expected_outcome="Complete map of lateral movement paths and techniques",
-                estimated_duration_minutes=45,
+                estimated_duration_minutes=CONST_45,
             ),
             PlaybookStep(
                 step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
@@ -634,18 +648,18 @@ class PlaybookManager:
                     "Restrict admin tool execution",
                 ],
                 expected_outcome="Lateral movement paths disrupted",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=3,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=CONST_3,
                 title="Identify initial compromise",
                 description="Determine how the attacker first gained access to the network",
                 tools=["EDR", "SIEM", "Proxy logs"],
                 expected_outcome="Initial compromise vector identified",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=4,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
                 title="Remove attacker access",
                 description="Reset credentials and remove persistence on all compromised systems",
                 tools=["EDR", "AD console", "PowerShell"],
@@ -653,20 +667,20 @@ class PlaybookManager:
                 estimated_duration_minutes=90,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=5,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
                 title="Strengthen segmentation",
                 description="Implement permanent network segmentation and access controls",
                 tools=["Firewall", "NAC", "PAM system"],
                 expected_outcome="Network segmentation hardened against future lateral movement",
-                estimated_duration_minutes=120,
+                estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=6,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
                 title="Update detection rules",
                 description="Create rules for lateral movement techniques observed in this incident",
                 tools=["SIEM", "EDR rules"],
                 expected_outcome="Detection rules for lateral movement updated",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
         ]
         total_duration = sum(s.estimated_duration_minutes for s in steps)
@@ -690,7 +704,7 @@ class PlaybookManager:
                 description="Verify data exfiltration and determine what data was taken",
                 tools=["DLP", "NetFlow", "Cloud access logs", "Database audit"],
                 expected_outcome="Exfiltration confirmed with data type and volume assessment",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
                 step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
@@ -707,37 +721,37 @@ class PlaybookManager:
                 estimated_duration_minutes=10,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=3,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=CONST_3,
                 title="Identify data source and method",
                 description="Determine which system or database the data was exfiltrated from",
                 tools=["Database audit", "File access logs", "EDR"],
                 expected_outcome="Data source and exfiltration method identified",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=4,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
                 title="Remediate vulnerability",
                 description="Fix the vulnerability or misconfiguration that enabled the exfiltration",
                 tools=["Vulnerability scanner", "Configuration management"],
                 expected_outcome="Root cause vulnerability remediated",
-                estimated_duration_minutes=120,
+                estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=5,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
                 title="Notify and monitor",
                 description="Notify affected parties and implement enhanced monitoring for similar activity",
                 tools=["SIEM", "DLP", "Notification templates"],
                 contacts=["Legal", "Compliance", "Affected customers"],
                 expected_outcome="Notifications sent, enhanced monitoring active",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=6,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
                 title="Improve DLP controls",
                 description="Update DLP rules and data classification based on incident findings",
                 tools=["DLP console", "Data classification tools"],
                 expected_outcome="DLP controls enhanced to prevent similar exfiltration",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
         ]
         total_duration = sum(s.estimated_duration_minutes for s in steps)
@@ -761,7 +775,7 @@ class PlaybookManager:
                 description="Determine which vendor, library, or update has been compromised",
                 tools=["Software composition analysis", "Vulnerability scanner", "Vendor advisories"],
                 expected_outcome="Compromised supply chain component identified",
-                estimated_duration_minutes=60,
+                estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
                 step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
@@ -775,40 +789,40 @@ class PlaybookManager:
                     "Disable compromised update mechanisms",
                 ],
                 expected_outcome="Compromised component contained",
-                estimated_duration_minutes=30,
+                estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=3,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=CONST_3,
                 title="Assess impact scope",
                 description="Determine all systems affected by the compromised component across the environment",
                 tools=["Asset management", "SCCM", "Endpoint inventory"],
                 expected_outcome="Complete inventory of affected systems",
-                estimated_duration_minutes=120,
+                estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=4,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
                 title="Remove compromised component",
                 description="Remove the compromised component from all affected systems",
                 tools=["SCCM", "Package manager", "Manual removal scripts"],
                 expected_outcome="Compromised component removed from all systems",
-                estimated_duration_minutes=240,
+                estimated_duration_minutes=CONST_240,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=5,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
                 title="Restore with verified versions",
                 description="Reinstall verified clean versions of the component from trusted sources",
                 tools=["Package manager", "Vendor support"],
                 contacts=["Vendor", "Legal", "Procurement"],
                 expected_outcome="Clean versions installed, vendor relationship reviewed",
-                estimated_duration_minutes=180,
+                estimated_duration_minutes=CONST_180,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=6,
+                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
                 title="Strengthen supply chain security",
                 description="Implement additional supply chain security controls and vendor assessment",
                 tools=["Vendor risk assessment", "SBOM tools"],
                 expected_outcome="Supply chain security posture improved",
-                estimated_duration_minutes=120,
+                estimated_duration_minutes=CONST_120,
             ),
         ]
         total_duration = sum(s.estimated_duration_minutes for s in steps)
@@ -861,7 +875,7 @@ class PlaybookManager:
                 contacts=step_data.get("contacts", []),
                 containment_actions=step_data.get("containment_actions", []),
                 expected_outcome=step_data.get("expected_outcome", ""),
-                estimated_duration_minutes=step_data.get("estimated_duration_minutes", 15),
+                estimated_duration_minutes=step_data.get("estimated_duration_minutes", CONST_15),
                 requires_approval=step_data.get("requires_approval", False),
                 approval_role=step_data.get("approval_role", ""),
             ))

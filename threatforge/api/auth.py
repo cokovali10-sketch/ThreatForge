@@ -7,6 +7,9 @@ import base64
 import time
 from typing import Optional, Callable
 from aiohttp import web
+# --- константы вынесены FORGE refactor ---
+CONST_4 = 4
+
 
 
 class AuthMiddleware:
@@ -76,8 +79,8 @@ class AuthMiddleware:
 
     def _check_token_expiry(self, payload_b64: str) -> bool:
         try:
-            padding = 4 - len(payload_b64) % 4
-            if padding != 4:
+            padding = CONST_4 - len(payload_b64) % CONST_4
+            if padding != CONST_4:
                 payload_b64 += "=" * padding
             payload_bytes = base64.urlsafe_b64decode(payload_b64)
             payload = json.loads(payload_bytes)

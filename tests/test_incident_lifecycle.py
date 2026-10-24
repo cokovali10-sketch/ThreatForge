@@ -1,7 +1,5 @@
 """Tests for incident lifecycle management."""
 
-import datetime
-import pytest
 from threatforge.core.incident import (
     Incident,
     IncidentManager,

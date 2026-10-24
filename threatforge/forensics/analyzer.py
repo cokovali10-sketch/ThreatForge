@@ -4,13 +4,17 @@ import hashlib
 import json
 import os
 import re
-import struct
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any
+# --- константы вынесены FORGE refactor ---
+CONST_0_3 = 0.3
+CONST_250 = 250
+CONST_500 = 500
+
 
 
 class ArtifactType(Enum):
@@ -464,7 +468,7 @@ class ForensicsAnalyzer:
         for loc in suspicious_locations:
             if loc in path:
                 analysis["indicators"].append(f"Running from suspicious location: {path}")
-                analysis["risk_score"] += 0.3
+                analysis["risk_score"] += CONST_0_3
 
         lolbins = [
             "powershell.exe", "cmd.exe", "wscript.exe", "cscript.exe",
@@ -477,7 +481,7 @@ class ForensicsAnalyzer:
 
         if any(kw in command_line for kw in ["-enc", "bypass", "hidden", "downloadstring", "invoke-expression", "iex"]):
             analysis["indicators"].append("Suspicious command-line arguments detected")
-            analysis["risk_score"] += 0.3
+            analysis["risk_score"] += CONST_0_3
 
         if process_info.get("parent_name", "").lower() in ["winword.exe", "excel.exe", "outlook.exe"]:
             if name in ["cmd.exe", "powershell.exe", "wscript.exe"]:
@@ -492,7 +496,7 @@ class ForensicsAnalyzer:
         analysis["risk_level"] = (
             "critical" if analysis["risk_score"] >= 0.8
             else "high" if analysis["risk_score"] >= 0.6
-            else "medium" if analysis["risk_score"] >= 0.3
+            else "medium" if analysis["risk_score"] >= CONST_0_3
             else "low"
         )
         return analysis
@@ -617,10 +621,10 @@ class ForensicsAnalyzer:
     def _analyze_filesystem(self, image_path: str) -> dict[str, Any]:
         return {
             "filesystem_type": "NTFS",
-            "total_size_gb": 500,
-            "used_size_gb": 250,
-            "free_size_gb": 250,
-            "partitions": [{"offset": 0, "size": 500, "type": "NTFS"}],
+            "total_size_gb": CONST_500,
+            "used_size_gb": CONST_250,
+            "free_size_gb": CONST_250,
+            "partitions": [{"offset": 0, "size": CONST_500, "type": "NTFS"}],
         }
 
     def _extract_registry_hives(self, image_path: str) -> dict[str, str]:
@@ -759,7 +763,7 @@ class ForensicsAnalyzer:
         for event in events:
             type_counts[event.event_type] += 1
         for event_type, count in type_counts.items():
-            if count > len(events) * 0.3:
+            if count > len(events) * CONST_0_3:
                 anomalies.append({
                     "type": "dominant_event_type",
                     "event_type": event_type,

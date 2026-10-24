@@ -5,6 +5,9 @@ import tempfile
 import pytest
 from threatforge.core.config import Config
 from threatforge.core.database import Database
+# --- константы вынесены FORGE refactor ---
+CONST_3 = 3
+
 
 
 @pytest.fixture
@@ -54,8 +57,8 @@ def test_create_alert(tmp_db):
 def test_get_alerts(tmp_db):
     for i in range(5):
         tmp_db.create_alert(title=f"Alert {i}", severity="medium")
-    alerts = tmp_db.get_alerts(limit=3)
-    assert len(alerts) == 3
+    alerts = tmp_db.get_alerts(limit=CONST_3)
+    assert len(alerts) == CONST_3
 
 
 def test_create_event(tmp_db):

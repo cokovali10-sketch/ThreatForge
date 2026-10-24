@@ -1,9 +1,17 @@
 """Configuration management for ThreatForge SOC platform."""
 
 import json
-import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
+# --- константы вынесены FORGE refactor ---
+CONST_5 = 5
+CONST_3600 = 3600
+CONST_5000 = 5000
+CONST_8443 = 8443
+CONST_64000 = 64000
+CONST_10485760 = 10485760
+CONST_67108864 = 67108864
+
 
 
 class LoggingConfig:
@@ -42,11 +50,11 @@ class LoggingConfig:
 
     @property
     def max_bytes(self) -> int:
-        return self._data.get("max_bytes", 10485760)
+        return self._data.get("max_bytes", CONST_10485760)
 
     @property
     def backup_count(self) -> int:
-        return self._data.get("backup_count", 5)
+        return self._data.get("backup_count", CONST_5)
 
     @property
     def json_indent(self) -> int:
@@ -73,15 +81,15 @@ class DatabaseConfig:
 
     @property
     def busy_timeout(self) -> int:
-        return self._data.get("busy_timeout", 5000)
+        return self._data.get("busy_timeout", CONST_5000)
 
     @property
     def journal_size_limit(self) -> int:
-        return self._data.get("journal_size_limit", 67108864)
+        return self._data.get("journal_size_limit", CONST_67108864)
 
     @property
     def cache_size(self) -> int:
-        return self._data.get("cache_size", -64000)
+        return self._data.get("cache_size", -CONST_64000)
 
 
 class Config:
@@ -93,17 +101,17 @@ class Config:
     DEFAULT_CONFIG = {
         "server": {
             "host": "0.0.0.0",
-            "port": 8443,
+            "port": CONST_8443,
             "debug": False,
             "cors_origins": ["*"],
         },
         "database": {
             "path": "data/threatforge.db",
             "backup_path": "data/backups",
-            "backup_interval": 3600,
-            "busy_timeout": 5000,
-            "journal_size_limit": 67108864,
-            "cache_size": -64000,
+            "backup_interval": CONST_3600,
+            "busy_timeout": CONST_5000,
+            "journal_size_limit": CONST_67108864,
+            "cache_size": -CONST_64000,
         },
         "logging": {
             "level": "INFO",
@@ -113,8 +121,8 @@ class Config:
             "format": "text",
             "log_dir": "logs",
             "filename": "threatforge.log",
-            "max_bytes": 10485760,
-            "backup_count": 5,
+            "max_bytes": CONST_10485760,
+            "backup_count": CONST_5,
             "json_indent": 2,
             "syslog_address": "/dev/log",
         },
@@ -131,7 +139,7 @@ class Config:
             "webhook_url": "",
         },
         "threat_intel": {
-            "update_interval": 3600,
+            "update_interval": CONST_3600,
             "feeds": [],
         },
         "forensics": {
@@ -195,7 +203,7 @@ class Config:
 
     @property
     def server_port(self) -> int:
-        return self.get("server.port", 8443)
+        return self.get("server.port", CONST_8443)
 
     @property
     def database_path(self) -> str:

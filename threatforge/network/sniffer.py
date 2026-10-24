@@ -5,7 +5,6 @@ Provides the PacketSniffer class for capturing and analyzing network traffic
 using scapy with support for TCP, UDP, ICMP, HTTP, and DNS parsing.
 """
 
-import ipaddress
 import time
 import uuid
 from collections import defaultdict
@@ -33,6 +32,15 @@ except ImportError:
 
 from threatforge.core.config import Config
 from threatforge.core.logger import Logger
+# --- константы вынесены FORGE refactor ---
+CONST_3 = 3
+CONST_4 = 4
+CONST_5 = 5
+CONST_8 = 8
+CONST_80 = 80
+CONST_200 = 200
+CONST_443 = 443
+
 
 
 @dataclass
@@ -130,7 +138,7 @@ class CaptureStats:
         return {
             "total_packets": self.total_packets,
             "total_bytes": self.total_bytes,
-            "duration": round(self.duration, 3),
+            "duration": round(self.duration, CONST_3),
             "packets_per_second": round(self.packets_per_second, 2),
             "protocol_counts": dict(self.protocol_counts),
             "top_talkers": self.top_talkers,
@@ -149,16 +157,16 @@ class PacketSniffer:
     COMMON_PORTS = {
         20: "FTP-Data", 21: "FTP", 22: "SSH", 23: "Telnet",
         25: "SMTP", 53: "DNS", 67: "DHCP", 68: "DHCP",
-        80: "HTTP", 110: "POP3", 111: "RPC", 135: "MS-RPC",
-        139: "NetBIOS", 143: "IMAP", 443: "HTTPS", 445: "SMB",
+        CONST_80: "HTTP", 110: "POP3", 111: "RPC", 135: "MS-RPC",
+        139: "NetBIOS", 143: "IMAP", CONST_443: "HTTPS", 445: "SMB",
         993: "IMAPS", 995: "POP3S", 1433: "MSSQL", 1521: "Oracle",
         3306: "MySQL", 3389: "RDP", 5432: "PostgreSQL",
         5900: "VNC", 6379: "Redis", 8080: "HTTP-Alt", 8443: "HTTPS-Alt",
     }
 
     TCP_FLAGS = {
-        0x01: "FIN", 0x02: "SYN", 0x04: "RST",
-        0x08: "PSH", 0x10: "ACK", 0x20: "URG",
+        0x01: "FIN", 0x02: "SYN", CONST_4: "RST",
+        CONST_8: "PSH", 0x10: "ACK", 0x20: "URG",
     }
 
     def __init__(self, config: Optional[Config] = None):
@@ -254,7 +262,7 @@ class PacketSniffer:
                 "Capture complete",
                 capture_id=self._capture_id,
                 total_packets=self._stats.total_packets,
-                duration=round(self._stats.duration, 3),
+                duration=round(self._stats.duration, CONST_3),
             )
 
         return self._capture_id
@@ -313,9 +321,9 @@ class PacketSniffer:
 
             self._detect_anomalies(packet_info)
 
-            if pkt[TCP].dport == 80 or pkt[TCP].sport == 80:
+            if pkt[TCP].dport == CONST_80 or pkt[TCP].sport == CONST_80:
                 self._parse_http(pkt, packet_info)
-            elif pkt[TCP].dport == 443 or pkt[TCP].sport == 443:
+            elif pkt[TCP].dport == CONST_443 or pkt[TCP].sport == CONST_443:
                 packet_info.application_data["layer"] = "TLS/SSL"
 
         elif UDP in pkt:
@@ -334,27 +342,27 @@ class PacketSniffer:
 
             icmp_types = {
                 0: "Echo Reply",
-                3: "Destination Unreachable",
-                5: "Redirect",
-                8: "Echo Request",
+                CONST_3: "Destination Unreachable",
+                CONST_5: "Redirect",
+                CONST_8: "Echo Request",
                 11: "Time Exceeded",
             }
             packet_info.application_data["icmp_type_name"] = icmp_types.get(
                 pkt[ICMP].type, f"Type {pkt[ICMP].type}"
             )
 
-            if pkt[ICMP].type == 8:
+            if pkt[ICMP].type == CONST_8:
                 packet_info.anomalies.append("ICMP echo request (ping)")
-            elif pkt[ICMP].type == 3:
+            elif pkt[ICMP].type == CONST_3:
                 packet_info.anomalies.append("ICMP destination unreachable")
 
         if Raw in pkt:
             raw_load = bytes(pkt[Raw].load)
             packet_info.payload_size = len(raw_load)
             try:
-                packet_info.payload_preview = raw_load[:200].decode("utf-8", errors="replace")
+                packet_info.payload_preview = raw_load[:CONST_200].decode("utf-8", errors="replace")
             except Exception:
-                packet_info.payload_preview = raw_load[:200].hex()
+                packet_info.payload_preview = raw_load[:CONST_200].hex()
 
         return packet_info
 
@@ -382,7 +390,7 @@ class PacketSniffer:
                     if len(parts) >= 2:
                         packet_info.application_data["http_method"] = parts[0]
                         packet_info.application_data["http_uri"] = parts[1]
-                        if len(parts) >= 3:
+                        if len(parts) >= CONST_3:
                             packet_info.application_data["http_version"] = parts[2]
 
                 for line in lines[1:]:
@@ -400,7 +408,7 @@ class PacketSniffer:
                     if len(parts) >= 2:
                         packet_info.application_data["http_version"] = parts[0]
                         packet_info.application_data["http_status"] = parts[1]
-                        if len(parts) >= 3:
+                        if len(parts) >= CONST_3:
                             packet_info.application_data["http_reason"] = parts[2]
 
         except Exception as e:
@@ -420,14 +428,14 @@ class PacketSniffer:
             packet_info.application_data["dns_opcode"] = opcodes.get(dns.opcode, str(dns.opcode))
 
             rcodes = {0: "No Error", 1: "Format Error", 2: "Server Failure",
-                      3: "Name Error", 4: "Not Implemented", 5: "Refused"}
+                      CONST_3: "Name Error", CONST_4: "Not Implemented", CONST_5: "Refused"}
             packet_info.application_data["dns_rcode"] = rcodes.get(dns.rcode, str(dns.rcode))
 
             if dns.qdcount > 0 and DNSQR in dns:
                 packet_info.application_data["dns_query_name"] = dns.qd.qname.decode(
                     "utf-8", errors="replace"
                 )
-                qtypes = {1: "A", 2: "NS", 5: "CNAME", 6: "SOA", 12: "PTR", 15: "MX", 28: "AAAA", 255: "ANY"}
+                qtypes = {1: "A", 2: "NS", CONST_5: "CNAME", 6: "SOA", 12: "PTR", 15: "MX", 28: "AAAA", 255: "ANY"}
                 packet_info.application_data["dns_query_type"] = qtypes.get(
                     dns.qd.qtype, str(dns.qd.qtype)
                 )
@@ -469,10 +477,10 @@ class PacketSniffer:
         if packet_info.ttl is not None:
             if packet_info.ttl <= 1:
                 packet_info.anomalies.append("TTL=1 (possible spoofing)")
-            elif packet_info.ttl > 200:
+            elif packet_info.ttl > CONST_200:
                 packet_info.anomalies.append("Unusually high TTL")
 
-        if packet_info.flags and packet_info.flags.count(",") >= 5:
+        if packet_info.flags and packet_info.flags.count(",") >= CONST_5:
             packet_info.anomalies.append("Unusual flag combination")
 
         if packet_info.source_port and packet_info.source_port == packet_info.destination_port:

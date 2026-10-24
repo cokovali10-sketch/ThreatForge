@@ -1,16 +1,20 @@
 """REST API routes for ThreatForge SOC platform."""
 
-import asyncio
 import json
 import time
-import uuid
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 from aiohttp import web, WSMsgType
 
 from threatforge.core.database import Database
 from threatforge.core.logger import Logger
 from threatforge.network.scanner import PortScanner
+# --- константы вынесены FORGE refactor ---
+CONST_50 = 50
+CONST_201 = 201
+CONST_400 = 400
+CONST_404 = 404
+
 
 
 class APIRoutes:
@@ -51,7 +55,7 @@ class APIRoutes:
     async def list_alerts(self, request: web.Request) -> web.Response:
         status = request.query.get("status")
         severity = request.query.get("severity")
-        limit = int(request.query.get("limit", 50))
+        limit = int(request.query.get("limit", CONST_50))
         offset = int(request.query.get("offset", 0))
         query = "SELECT * FROM alerts WHERE 1=1"
         params = []
@@ -71,7 +75,7 @@ class APIRoutes:
         alert_id = request.match_info["id"]
         alert = self.db.fetch_one("SELECT * FROM alerts WHERE id = ?", (alert_id,))
         if not alert:
-            return web.json_response({"error": "Alert not found"}, status=404)
+            return web.json_response({"error": "Alert not found"}, status=CONST_404)
         updated = self.db.update_alert(alert_id, status="acknowledged", acknowledged_at=time.time())
         await self.broadcast_websocket("alerts", {"type": "acknowledged", "alert": updated})
         return web.json_response(updated)
@@ -80,7 +84,7 @@ class APIRoutes:
         alert_id = request.match_info["id"]
         alert = self.db.fetch_one("SELECT * FROM alerts WHERE id = ?", (alert_id,))
         if not alert:
-            return web.json_response({"error": "Alert not found"}, status=404)
+            return web.json_response({"error": "Alert not found"}, status=CONST_404)
         updated = self.db.update_alert(alert_id, status="resolved", resolved_at=time.time())
         await self.broadcast_websocket("alerts", {"type": "resolved", "alert": updated})
         return web.json_response(updated)
@@ -88,7 +92,7 @@ class APIRoutes:
     # Events
 
     async def list_events(self, request: web.Request) -> web.Response:
-        limit = int(request.query.get("limit", 50))
+        limit = int(request.query.get("limit", CONST_50))
         offset = int(request.query.get("offset", 0))
         event_type = request.query.get("type")
         query = "SELECT * FROM events WHERE 1=1"
@@ -104,7 +108,7 @@ class APIRoutes:
 
     async def search_events(self, request: web.Request) -> web.Response:
         q = request.query.get("q", "")
-        limit = int(request.query.get("limit", 50))
+        limit = int(request.query.get("limit", CONST_50))
         query = """SELECT * FROM events WHERE
                    event_type LIKE ? OR source_ip LIKE ? OR destination_ip LIKE ? OR payload LIKE ?
                    ORDER BY timestamp DESC LIMIT ?"""
@@ -117,7 +121,7 @@ class APIRoutes:
     async def list_incidents(self, request: web.Request) -> web.Response:
         status = request.query.get("status")
         severity = request.query.get("severity")
-        limit = int(request.query.get("limit", 50))
+        limit = int(request.query.get("limit", CONST_50))
         query = "SELECT * FROM incidents WHERE 1=1"
         params = []
         if status:
@@ -135,10 +139,10 @@ class APIRoutes:
         try:
             data = await request.json()
         except json.JSONDecodeError:
-            return web.json_response({"error": "Invalid JSON"}, status=400)
+            return web.json_response({"error": "Invalid JSON"}, status=CONST_400)
         title = data.get("title")
         if not title:
-            return web.json_response({"error": "Title is required"}, status=400)
+            return web.json_response({"error": "Title is required"}, status=CONST_400)
         incident = self.db.create_incident(
             title=title,
             description=data.get("description", ""),
@@ -149,24 +153,24 @@ class APIRoutes:
         )
         await self.broadcast_websocket("alerts", {"type": "new_incident", "incident": incident})
         self.logger.log_incident(incident["id"], "created", title)
-        return web.json_response(incident, status=201)
+        return web.json_response(incident, status=CONST_201)
 
     async def get_incident(self, request: web.Request) -> web.Response:
         incident_id = request.match_info["id"]
         incident = self.db.fetch_one("SELECT * FROM incidents WHERE id = ?", (incident_id,))
         if not incident:
-            return web.json_response({"error": "Incident not found"}, status=404)
+            return web.json_response({"error": "Incident not found"}, status=CONST_404)
         return web.json_response(incident)
 
     async def update_incident(self, request: web.Request) -> web.Response:
         incident_id = request.match_info["id"]
         incident = self.db.fetch_one("SELECT * FROM incidents WHERE id = ?", (incident_id,))
         if not incident:
-            return web.json_response({"error": "Incident not found"}, status=404)
+            return web.json_response({"error": "Incident not found"}, status=CONST_404)
         try:
             data = await request.json()
         except json.JSONDecodeError:
-            return web.json_response({"error": "Invalid JSON"}, status=400)
+            return web.json_response({"error": "Invalid JSON"}, status=CONST_400)
         updated = self.db.update_incident(incident_id, **data)
         self.logger.log_incident(incident_id, "updated", updated["title"])
         return web.json_response(updated)
@@ -175,7 +179,7 @@ class APIRoutes:
         incident_id = request.match_info["id"]
         incident = self.db.fetch_one("SELECT * FROM incidents WHERE id = ?", (incident_id,))
         if not incident:
-            return web.json_response({"error": "Incident not found"}, status=404)
+            return web.json_response({"error": "Incident not found"}, status=CONST_404)
         timeline = json.loads(incident.get("timeline", "[]"))
         timeline.append({
             "timestamp": incident["created_at"],
@@ -243,29 +247,29 @@ class APIRoutes:
         try:
             data = await request.json()
         except json.JSONDecodeError:
-            return web.json_response({"error": "Invalid JSON"}, status=400)
+            return web.json_response({"error": "Invalid JSON"}, status=CONST_400)
         ioc_type = data.get("type")
         value = data.get("value")
         if not ioc_type or not value:
-            return web.json_response({"error": "type and value are required"}, status=400)
+            return web.json_response({"error": "type and value are required"}, status=CONST_400)
         ioc = self.db.add_ioc(
             ioc_type=ioc_type,
             value=value,
-            confidence=data.get("confidence", 50),
+            confidence=data.get("confidence", CONST_50),
             severity=data.get("severity", "medium"),
             source=data.get("source", ""),
             description=data.get("description", ""),
             tags=data.get("tags", []),
         )
-        self.logger.log_threat(ioc_type, value, ioc.get("confidence", 50))
+        self.logger.log_threat(ioc_type, value, ioc.get("confidence", CONST_50))
         await self.broadcast_websocket("alerts", {"type": "new_ioc", "ioc": ioc})
-        return web.json_response(ioc, status=201)
+        return web.json_response(ioc, status=CONST_201)
 
     async def remove_ioc(self, request: web.Request) -> web.Response:
         ioc_id = request.match_info["id"]
         ioc = self.db.fetch_one("SELECT * FROM iocs WHERE id = ?", (ioc_id,))
         if not ioc:
-            return web.json_response({"error": "IOC not found"}, status=404)
+            return web.json_response({"error": "IOC not found"}, status=CONST_404)
         self.db.remove_ioc(ioc_id)
         return web.json_response({"message": "IOC removed"})
 
@@ -277,17 +281,17 @@ class APIRoutes:
         try:
             data = await request.json()
         except json.JSONDecodeError:
-            return web.json_response({"error": "Invalid JSON"}, status=400)
+            return web.json_response({"error": "Invalid JSON"}, status=CONST_400)
         name = data.get("name")
         url = data.get("url")
         feed_type = data.get("feed_type")
         if not name or not url or not feed_type:
-            return web.json_response({"error": "name, url, and feed_type are required"}, status=400)
+            return web.json_response({"error": "name, url, and feed_type are required"}, status=CONST_400)
         feed = self.db.add_threat_feed(
             name=name, url=url, feed_type=feed_type,
             update_interval=data.get("update_interval", 3600),
         )
-        return web.json_response(feed, status=201)
+        return web.json_response(feed, status=CONST_201)
 
     # Forensics
 
@@ -338,11 +342,11 @@ class APIRoutes:
         try:
             data = await request.json()
         except json.JSONDecodeError:
-            return web.json_response({"error": "Invalid JSON"}, status=400)
+            return web.json_response({"error": "Invalid JSON"}, status=CONST_400)
         target = data.get("target")
         ports = data.get("ports")
         if not target:
-            return web.json_response({"error": "target is required"}, status=400)
+            return web.json_response({"error": "target is required"}, status=CONST_400)
         result = await self.scanner.scan_host(target, ports)
         return web.json_response(result)
 
@@ -356,7 +360,7 @@ class APIRoutes:
         playbook_id = request.match_info["id"]
         playbook = self.db.fetch_one("SELECT * FROM playbooks WHERE id = ?", (playbook_id,))
         if not playbook:
-            return web.json_response({"error": "Playbook not found"}, status=404)
+            return web.json_response({"error": "Playbook not found"}, status=CONST_404)
         self.db.execute(
             "UPDATE playbooks SET last_executed = ?, execution_count = execution_count + 1 WHERE id = ?",
             (time.time(), playbook_id),

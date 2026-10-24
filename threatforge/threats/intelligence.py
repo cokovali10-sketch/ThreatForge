@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -9,6 +8,11 @@ from enum import Enum
 from typing import Any
 
 from .ioc import IOCManager, IOCType
+# --- константы вынесены FORGE refactor ---
+CONST_0_15 = 0.15
+CONST_0_5 = 0.5
+CONST_24 = 24
+
 
 
 class FeedStatus(Enum):
@@ -26,12 +30,12 @@ class ThreatFeed:
     feed_type: str
     status: FeedStatus = FeedStatus.ACTIVE
     last_fetched: datetime | None = None
-    fetch_interval_hours: int = 24
+    fetch_interval_hours: int = CONST_24
     ioc_count: int = 0
     enabled: bool = True
     auth_config: dict[str, str] = field(default_factory=dict)
     tags: list[str] = field(default_factory=list)
-    reliability_score: float = 0.5
+    reliability_score: float = CONST_0_5
     error_message: str = ""
     created_at: datetime = field(default_factory=datetime.utcnow)
 
@@ -102,10 +106,10 @@ class ThreatIntel:
         name: str,
         url: str,
         feed_type: str = "json",
-        fetch_interval_hours: int = 24,
+        fetch_interval_hours: int = CONST_24,
         auth_config: dict[str, str] | None = None,
         tags: list[str] | None = None,
-        reliability_score: float = 0.5,
+        reliability_score: float = CONST_0_5,
     ) -> ThreatFeed:
         feed_id = str(uuid.uuid4())
         feed = ThreatFeed(
@@ -287,7 +291,7 @@ class ThreatIntel:
         self.campaigns[campaign_id] = campaign
         return campaign
 
-    def correlate_iocs(self, time_window_hours: int = 24) -> list[CorrelationResult]:
+    def correlate_iocs(self, time_window_hours: int = CONST_24) -> list[CorrelationResult]:
         correlations: list[CorrelationResult] = []
         active_iocs = self.ioc_manager.get_by_type(IOCType.IP, active_only=True)
         ip_groups: dict[str, list[str]] = {}
@@ -332,7 +336,7 @@ class ThreatIntel:
         campaign_factor = min(1.0, len(self.campaigns) / 5)
         correlation_factor = min(1.0, len(self.correlations) / 10)
 
-        threat_score = base_score * 0.5 + actor_factor * 0.2 + campaign_factor * 0.15 + correlation_factor * 0.15
+        threat_score = base_score * CONST_0_5 + actor_factor * 0.2 + campaign_factor * CONST_0_15 + correlation_factor * CONST_0_15
         return round(min(1.0, max(0.0, threat_score)), 4)
 
     def export_stix(self, include_iocs: bool = True, include_actors: bool = True, include_campaigns: bool = True) -> str:

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 import io
 import json
 import re
@@ -10,6 +9,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
+# --- константы вынесены FORGE refactor ---
+CONST_0_15 = 0.15
+CONST_0_3 = 0.3
+CONST_0_5 = 0.5
+CONST_4 = 4
+
 
 
 class IOCType(Enum):
@@ -82,8 +87,8 @@ class IOCManager:
         self,
         ioc_type: IOCType,
         value: str,
-        confidence: float = 0.5,
-        severity: float = 0.5,
+        confidence: float = CONST_0_5,
+        severity: float = CONST_0_5,
         source: str = "",
         description: str = "",
         tags: list[str] | None = None,
@@ -194,7 +199,7 @@ class IOCManager:
                         ioc_type=ioc_type,
                         value=value,
                         confidence=confidence,
-                        severity=0.5,
+                        severity=CONST_0_5,
                         source=obj.get("created_by_ref", "stix_import"),
                         description=desc,
                         tags=labels,
@@ -249,8 +254,8 @@ class IOCManager:
             ioc = self.add_ioc(
                 ioc_type=ioc_type,
                 value=value,
-                confidence=float(item.get("confidence", 0.5)),
-                severity=float(item.get("severity", 0.5)),
+                confidence=float(item.get("confidence", CONST_0_5)),
+                severity=float(item.get("severity", CONST_0_5)),
                 source=source,
                 description=item.get("description", ""),
                 tags=item.get("tags", []),
@@ -402,7 +407,7 @@ class IOCManager:
 
     def _normalize_ip(self, ip: str) -> str:
         parts = ip.split(".")
-        if len(parts) == 4:
+        if len(parts) == CONST_4:
             try:
                 return ".".join(str(min(255, max(0, int(p)))) for p in parts)
             except ValueError:
@@ -469,10 +474,10 @@ class IOCManager:
         return [ioc for ioc in self.iocs.values() if ioc.status == IOCStatus.EXPIRED]
 
     def calculate_score(self, ioc: IOC) -> float:
-        confidence_weight = 0.3
-        severity_weight = 0.3
-        age_weight = 0.15
-        sightings_weight = 0.15
+        confidence_weight = CONST_0_3
+        severity_weight = CONST_0_3
+        age_weight = CONST_0_15
+        sightings_weight = CONST_0_15
         enrichment_weight = 0.1
 
         age_days = 0
@@ -491,7 +496,7 @@ class IOCManager:
             + sightings_factor * sightings_weight
             + enrichment_factor * enrichment_weight
         )
-        return round(min(1.0, max(0.0, score)), 4)
+        return round(min(1.0, max(0.0, score)), CONST_4)
 
     def get_iocs_as_dicts(self, active_only: bool = True) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
@@ -541,5 +546,5 @@ class IOCManager:
             "revoked": revoked,
             "by_type": by_type,
             "by_source": by_source,
-            "average_score": round(avg_score, 4),
+            "average_score": round(avg_score, CONST_4),
         }

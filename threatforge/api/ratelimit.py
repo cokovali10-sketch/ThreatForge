@@ -4,12 +4,16 @@ import time
 from collections import defaultdict
 from typing import Callable
 from aiohttp import web
+# --- константы вынесены FORGE refactor ---
+CONST_60 = 60
+CONST_429 = 429
+
 
 
 class RateLimitMiddleware:
     """Rate limiting middleware to prevent brute-force attacks."""
 
-    def __init__(self, max_requests: int = 100, window_seconds: int = 60):
+    def __init__(self, max_requests: int = 100, window_seconds: int = CONST_60):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self.requests: dict[str, list[float]] = defaultdict(list)
@@ -22,14 +26,14 @@ class RateLimitMiddleware:
         if self._is_blocked(client_ip):
             return web.json_response(
                 {"error": "Rate limit exceeded. Try again later."},
-                status=429,
+                status=CONST_429,
             )
 
         if self._is_rate_limited(client_ip):
             self._block_ip(client_ip)
             return web.json_response(
                 {"error": "Rate limit exceeded. IP blocked temporarily."},
-                status=429,
+                status=CONST_429,
             )
 
         self._record_request(client_ip)
@@ -70,7 +74,7 @@ class RateLimitMiddleware:
 
 
 def setup_rate_limiting(app: web.Application, max_requests: int = 100,
-                        window_seconds: int = 60) -> None:
+                        window_seconds: int = CONST_60) -> None:
     """Setup rate limiting middleware on the app."""
     rate_limiter = RateLimitMiddleware(max_requests, window_seconds)
     app.middlewares.append(rate_limiter.middleware)

@@ -6,6 +6,9 @@ import json
 import logging
 import sqlite3
 from typing import Any, Dict, List, Optional
+# --- константы вынесены FORGE refactor ---
+CONST_6 = 6
+
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +209,7 @@ class AuditTrail:
                 actor=row[3],
                 target_type=row[4],
                 target_id=row[5],
-                details=json.loads(row[6]) if row[6] else None,
+                details=json.loads(row[CONST_6]) if row[CONST_6] else None,
                 ip_address=row[7],
             )
             entry.id = str(row[0])

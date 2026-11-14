@@ -9,10 +9,10 @@ import time
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Optional
 
 from threatforge.core.config import Config
 from threatforge.core.logger import Logger
+
 # --- константы вынесены FORGE refactor ---
 CONST_3 = 3
 CONST_60 = 60
@@ -20,10 +20,10 @@ CONST_300 = 300
 CONST_3600 = 3600
 
 
-
 @dataclass
 class Connection:
     """Tracked network connection."""
+
     id: str
     source_ip: str
     source_port: int
@@ -85,6 +85,7 @@ class Connection:
 @dataclass
 class TrafficFlow:
     """Aggregated traffic flow between two endpoints."""
+
     source_ip: str
     destination_ip: str
     protocol: str
@@ -109,7 +110,9 @@ class TrafficFlow:
             "connection_count": self.connection_count,
             "first_seen": self.first_seen,
             "last_seen": self.last_seen,
-            "duration": round(self.last_seen - self.first_seen, CONST_3) if self.last_seen > self.first_seen else 0,
+            "duration": round(self.last_seen - self.first_seen, CONST_3)
+            if self.last_seen > self.first_seen
+            else 0,
             "ports": list(self.port_pairs),
         }
 
@@ -117,6 +120,7 @@ class TrafficFlow:
 @dataclass
 class BandwidthSample:
     """Bandwidth usage at a point in time."""
+
     timestamp: float
     bytes_in: int = 0
     bytes_out: int = 0
@@ -135,13 +139,14 @@ class BandwidthSample:
 @dataclass
 class Anomaly:
     """Detected network anomaly."""
+
     id: str
     timestamp: float
     anomaly_type: str
     severity: str
     description: str
-    source_ip: Optional[str] = None
-    destination_ip: Optional[str] = None
+    source_ip: str | None = None
+    destination_ip: str | None = None
     details: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -165,7 +170,7 @@ class NetworkAnalyzer:
     and real-time anomaly detection for security operations.
     """
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Config | None = None):
         self.config = config or Config()
         self.logger = Logger("threatforge.analyzer", self.config)
 
@@ -193,7 +198,9 @@ class NetworkAnalyzer:
         self._baseline_bandwidth: float = 0.0
         self._baseline_connections_per_second: float = 0.0
 
-    def _connection_key(self, src_ip: str, src_port: int, dst_ip: str, dst_port: int, proto: str) -> str:
+    def _connection_key(
+        self, src_ip: str, src_port: int, dst_ip: str, dst_port: int, proto: str
+    ) -> str:
         """Generate a canonical connection key."""
         parts = sorted([(src_ip, src_port), (dst_ip, dst_port)])
         return f"{parts[0][0]}:{parts[0][1]}-{parts[1][0]}:{parts[1][1]}-{proto}"
@@ -224,9 +231,15 @@ class NetworkAnalyzer:
         self._detect_anomalies(src_ip, dst_ip, src_port, dst_port, protocol, length, now)
 
     def _update_connection(
-        self, src_ip: str, src_port: Optional[int], dst_ip: str,
-        dst_port: Optional[int], protocol: str, length: int,
-        flags: str, timestamp: float,
+        self,
+        src_ip: str,
+        src_port: int | None,
+        dst_ip: str,
+        dst_port: int | None,
+        protocol: str,
+        length: int,
+        flags: str,
+        timestamp: float,
     ) -> None:
         """Update connection tracking."""
         if src_port is None or dst_port is None:
@@ -273,9 +286,14 @@ class NetworkAnalyzer:
             conn.state = "established"
 
     def _update_flow(
-        self, src_ip: str, dst_ip: str, protocol: str,
-        src_port: Optional[int], dst_port: Optional[int],
-        length: int, timestamp: float,
+        self,
+        src_ip: str,
+        dst_ip: str,
+        protocol: str,
+        src_port: int | None,
+        dst_port: int | None,
+        length: int,
+        timestamp: float,
     ) -> None:
         """Update traffic flow aggregation."""
         flow_key = self._flow_key(src_ip, dst_ip, protocol)
@@ -312,8 +330,14 @@ class NetworkAnalyzer:
             self._bandwidth_samples = self._bandwidth_samples[-CONST_3600:]
 
     def _detect_anomalies(
-        self, src_ip: str, dst_ip: str, src_port: Optional[int],
-        dst_port: Optional[int], protocol: str, length: int, timestamp: float,
+        self,
+        src_ip: str,
+        dst_ip: str,
+        src_port: int | None,
+        dst_port: int | None,
+        protocol: str,
+        length: int,
+        timestamp: float,
     ) -> None:
         """Run anomaly detection checks."""
         self._detect_port_scan(src_ip, dst_ip, timestamp)
@@ -328,16 +352,14 @@ class NetworkAnalyzer:
 
         window = self._config_anomaly["port_scan_window"]
         cutoff = timestamp - window
-        self._port_scan_tracker[key] = {
-            t for t in self._port_scan_tracker[key] if t > cutoff
-        }
+        self._port_scan_tracker[key] = {t for t in self._port_scan_tracker[key] if t > cutoff}
 
         if len(self._port_scan_tracker[key]) >= self._config_anomaly["port_scan_threshold"]:
             self._create_anomaly(
                 anomaly_type="port_scan",
                 severity="high",
                 description=f"Potential port scan from {src_ip} to {dst_ip} "
-                           f"({len(self._port_scan_tracker[key])} connections in {window}s)",
+                f"({len(self._port_scan_tracker[key])} connections in {window}s)",
                 source_ip=src_ip,
                 destination_ip=dst_ip,
                 details={
@@ -380,7 +402,10 @@ class NetworkAnalyzer:
 
         avg_baseline = sum(s.total_bytes for s in baseline_samples) / len(baseline_samples)
 
-        if avg_baseline > 0 and avg_recent > avg_baseline * self._config_anomaly["bandwidth_spike_multiplier"]:
+        if (
+            avg_baseline > 0
+            and avg_recent > avg_baseline * self._config_anomaly["bandwidth_spike_multiplier"]
+        ):
             self._create_anomaly(
                 anomaly_type="bandwidth_spike",
                 severity="medium",
@@ -392,7 +417,9 @@ class NetworkAnalyzer:
                 },
             )
 
-    def _detect_large_transfer(self, src_ip: str, dst_ip: str, length: int, timestamp: float) -> None:
+    def _detect_large_transfer(
+        self, src_ip: str, dst_ip: str, length: int, timestamp: float
+    ) -> None:
         """Detect unusually large data transfers."""
         flow_key = self._flow_key(src_ip, dst_ip, "tcp")
         flow = self._flows.get(flow_key)
@@ -403,13 +430,20 @@ class NetworkAnalyzer:
                 description=f"Large data transfer: {src_ip} -> {dst_ip} ({flow.total_bytes} bytes)",
                 source_ip=src_ip,
                 destination_ip=dst_ip,
-                details={"total_bytes": flow.total_bytes, "connection_count": flow.connection_count},
+                details={
+                    "total_bytes": flow.total_bytes,
+                    "connection_count": flow.connection_count,
+                },
             )
 
     def _create_anomaly(
-        self, anomaly_type: str, severity: str, description: str,
-        source_ip: Optional[str] = None, destination_ip: Optional[str] = None,
-        details: Optional[dict] = None,
+        self,
+        anomaly_type: str,
+        severity: str,
+        description: str,
+        source_ip: str | None = None,
+        destination_ip: str | None = None,
+        details: dict | None = None,
     ) -> Anomaly:
         """Create and record an anomaly."""
         anomaly = Anomaly(
@@ -435,9 +469,9 @@ class NetworkAnalyzer:
 
     def get_connections(
         self,
-        state: Optional[str] = None,
-        source_ip: Optional[str] = None,
-        destination_ip: Optional[str] = None,
+        state: str | None = None,
+        source_ip: str | None = None,
+        destination_ip: str | None = None,
         limit: int = 100,
     ) -> list[dict]:
         """Get tracked connections with optional filtering."""
@@ -455,9 +489,9 @@ class NetworkAnalyzer:
 
     def get_flows(
         self,
-        src_ip: Optional[str] = None,
-        dst_ip: Optional[str] = None,
-        protocol: Optional[str] = None,
+        src_ip: str | None = None,
+        dst_ip: str | None = None,
+        protocol: str | None = None,
         limit: int = 100,
     ) -> list[dict]:
         """Get traffic flows with optional filtering."""
@@ -492,8 +526,8 @@ class NetworkAnalyzer:
 
     def get_anomalies(
         self,
-        anomaly_type: Optional[str] = None,
-        severity: Optional[str] = None,
+        anomaly_type: str | None = None,
+        severity: str | None = None,
         limit: int = 100,
     ) -> list[dict]:
         """Get detected anomalies with optional filtering."""
@@ -532,14 +566,17 @@ class NetworkAnalyzer:
             "total_anomalies": len(self._anomalies),
             "protocol_distribution": dict(proto_dist),
             "top_sources": sorted(top_sources.items(), key=lambda x: x[1], reverse=True)[:10],
-            "top_destinations": sorted(top_destinations.items(), key=lambda x: x[1], reverse=True)[:10],
+            "top_destinations": sorted(top_destinations.items(), key=lambda x: x[1], reverse=True)[
+                :10
+            ],
             "bandwidth_samples": len(self._bandwidth_samples),
         }
 
     def get_host_profile(self, ip: str) -> dict:
         """Build a behavioral profile for a specific host."""
-        connections = [c for c in self._connections.values()
-                       if c.source_ip == ip or c.destination_ip == ip]
+        connections = [
+            c for c in self._connections.values() if c.source_ip == ip or c.destination_ip == ip
+        ]
 
         src_conns = [c for c in connections if c.source_ip == ip]
         dst_conns = [c for c in connections if c.destination_ip == ip]
@@ -569,8 +606,7 @@ class NetworkAnalyzer:
             "total_bytes_sent": sum(c.bytes_sent for c in src_conns),
             "total_bytes_received": sum(c.bytes_received for c in dst_conns),
             "avg_packet_size": (
-                sum(c.avg_packet_size for c in connections) / len(connections)
-                if connections else 0
+                sum(c.avg_packet_size for c in connections) / len(connections) if connections else 0
             ),
         }
 
@@ -578,8 +614,7 @@ class NetworkAnalyzer:
         """Remove connections that haven't seen activity within timeout."""
         now = time.time()
         stale_keys = [
-            key for key, conn in self._connections.items()
-            if now - conn.last_seen > timeout
+            key for key, conn in self._connections.items() if now - conn.last_seen > timeout
         ]
 
         for key in stale_keys:

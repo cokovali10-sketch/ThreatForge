@@ -2,7 +2,8 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
+
 # --- константы вынесены FORGE refactor ---
 CONST_5 = 5
 CONST_3600 = 3600
@@ -11,7 +12,6 @@ CONST_8443 = 8443
 CONST_64000 = 64000
 CONST_10485760 = 10485760
 CONST_67108864 = 67108864
-
 
 
 class LoggingConfig:
@@ -96,7 +96,7 @@ class Config:
     """Central configuration manager for ThreatForge."""
 
     _instance = None
-    _config: Dict[str, Any] = {}
+    _config: dict[str, Any] = {}
 
     DEFAULT_CONFIG = {
         "server": {
@@ -160,10 +160,10 @@ class Config:
         self._config = self.DEFAULT_CONFIG.copy()
         if config_file.exists():
             try:
-                with open(config_file, "r") as f:
+                with open(config_file) as f:
                     user_config = json.load(f)
                 self._deep_merge(self._config, user_config)
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 pass
 
     def _deep_merge(self, base: dict, override: dict) -> None:

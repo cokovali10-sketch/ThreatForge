@@ -109,7 +109,10 @@ class IncidentManager:
             IncidentStatus.ERADICATING.value: [IncidentStatus.RECOVERING.value],
             IncidentStatus.RECOVERING.value: [IncidentStatus.CLOSED.value],
             IncidentStatus.CLOSED.value: [IncidentStatus.REOPENED.value],
-            IncidentStatus.REOPENED.value: [IncidentStatus.TRIAGED.value, IncidentStatus.CONTAINED.value],
+            IncidentStatus.REOPENED.value: [
+                IncidentStatus.TRIAGED.value,
+                IncidentStatus.CONTAINED.value,
+            ],
         }
 
     def create_incident(
@@ -152,7 +155,13 @@ class IncidentManager:
             self.assign_incident(incident_id, assignee, "primary_responder")
         return incident
 
-    def update_status(self, incident_id: str, new_status: IncidentStatus, notes: str = "", actor: str = "system") -> bool:
+    def update_status(
+        self,
+        incident_id: str,
+        new_status: IncidentStatus,
+        notes: str = "",
+        actor: str = "system",
+    ) -> bool:
         incident = self.incidents.get(incident_id)
         if not incident:
             return False
@@ -174,12 +183,15 @@ class IncidentManager:
         self._add_timeline_entry(
             incident_id,
             "status_change",
-            f"Status changed from {old_status.value} to {new_status.value}" + (f": {notes}" if notes else ""),
+            f"Status changed from {old_status.value} to {new_status.value}"
+            + (f": {notes}" if notes else ""),
             actor,
         )
         return True
 
-    def assign_incident(self, incident_id: str, assignee: str, role: str = "responder", notes: str = "") -> Assignment | None:
+    def assign_incident(
+        self, incident_id: str, assignee: str, role: str = "responder", notes: str = ""
+    ) -> Assignment | None:
         incident = self.incidents.get(incident_id)
         if not incident:
             return None
@@ -202,7 +214,13 @@ class IncidentManager:
         )
         return assignment
 
-    def escalate_incident(self, incident_id: str, escalation_contact: str, reason: str, actor: str = "system") -> bool:
+    def escalate_incident(
+        self,
+        incident_id: str,
+        escalation_contact: str,
+        reason: str,
+        actor: str = "system",
+    ) -> bool:
         incident = self.incidents.get(incident_id)
         if not incident:
             return False
@@ -240,12 +258,14 @@ class IncidentManager:
             file_path=file_path,
             hash_value=hash_value,
             tags=tags or [],
-            chain_of_custody=[{
-                "action": "collected",
-                "by": collected_by,
-                "timestamp": datetime.utcnow().isoformat(),
-                "notes": description,
-            }],
+            chain_of_custody=[
+                {
+                    "action": "collected",
+                    "by": collected_by,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "notes": description,
+                }
+            ],
         )
         incident.evidence.append(evidence)
         incident.updated_at = datetime.utcnow()
@@ -257,17 +277,21 @@ class IncidentManager:
         )
         return evidence
 
-    def transfer_evidence(self, evidence_id: str, from_person: str, to_person: str, notes: str = "") -> bool:
+    def transfer_evidence(
+        self, evidence_id: str, from_person: str, to_person: str, notes: str = ""
+    ) -> bool:
         for incident in self.incidents.values():
             for evidence in incident.evidence:
                 if evidence.evidence_id == evidence_id:
-                    evidence.chain_of_custody.append({
-                        "action": "transferred",
-                        "from": from_person,
-                        "to": to_person,
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "notes": notes,
-                    })
+                    evidence.chain_of_custody.append(
+                        {
+                            "action": "transferred",
+                            "from": from_person,
+                            "to": to_person,
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "notes": notes,
+                        }
+                    )
                     self._add_timeline_entry(
                         incident.incident_id,
                         "evidence_transfer",
@@ -277,14 +301,30 @@ class IncidentManager:
                     return True
         return False
 
-    def add_timeline_entry(self, incident_id: str, event_type: str, description: str, actor: str, metadata: dict[str, Any] | None = None) -> TimelineEntry | None:
+    def add_timeline_entry(
+        self,
+        incident_id: str,
+        event_type: str,
+        description: str,
+        actor: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> TimelineEntry | None:
         incident = self.incidents.get(incident_id)
         if not incident:
             return None
-        entry = self._add_timeline_entry(incident_id, event_type, description, actor, metadata or {})
+        entry = self._add_timeline_entry(
+            incident_id, event_type, description, actor, metadata or {}
+        )
         return entry
 
-    def _add_timeline_entry(self, incident_id: str, event_type: str, description: str, actor: str, metadata: dict[str, Any] | None = None) -> TimelineEntry:
+    def _add_timeline_entry(
+        self,
+        incident_id: str,
+        event_type: str,
+        description: str,
+        actor: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> TimelineEntry:
         incident = self.incidents.get(incident_id)
         entry = TimelineEntry(
             entry_id=str(uuid.uuid4()),
@@ -307,7 +347,14 @@ class IncidentManager:
         }
         return mapping.get(severity, IncidentPriority.P3)
 
-    def close_incident(self, incident_id: str, root_cause: str, lessons_learned: str, recommendations: list[str] | None = None, actor: str = "system") -> bool:
+    def close_incident(
+        self,
+        incident_id: str,
+        root_cause: str,
+        lessons_learned: str,
+        recommendations: list[str] | None = None,
+        actor: str = "system",
+    ) -> bool:
         incident = self.incidents.get(incident_id)
         if not incident:
             return False
@@ -342,7 +389,11 @@ class IncidentManager:
     def get_incident(self, incident_id: str) -> Incident | None:
         return self.incidents.get(incident_id)
 
-    def get_all_incidents(self, status: IncidentStatus | None = None, severity: IncidentSeverity | None = None) -> list[Incident]:
+    def get_all_incidents(
+        self,
+        status: IncidentStatus | None = None,
+        severity: IncidentSeverity | None = None,
+    ) -> list[Incident]:
         results = list(self.incidents.values())
         if status:
             results = [i for i in results if i.status == status]
@@ -351,20 +402,27 @@ class IncidentManager:
         return sorted(results, key=lambda x: (x.priority.value, x.created_at), reverse=False)
 
     def get_open_incidents(self) -> list[Incident]:
-        open_statuses = {IncidentStatus.DETECTED, IncidentStatus.TRIAGED, IncidentStatus.CONTAINED, IncidentStatus.ERADICATING, IncidentStatus.RECOVERING}
+        open_statuses = {
+            IncidentStatus.DETECTED,
+            IncidentStatus.TRIAGED,
+            IncidentStatus.CONTAINED,
+            IncidentStatus.ERADICATING,
+            IncidentStatus.RECOVERING,
+        }
         return [i for i in self.incidents.values() if i.status in open_statuses]
 
     def get_incidents_by_assignee(self, assignee: str) -> list[Incident]:
-        return [i for i in self.incidents.values() if i.assignee == assignee and i.status != IncidentStatus.CLOSED]
+        return [
+            i
+            for i in self.incidents.values()
+            if i.assignee == assignee and i.status != IncidentStatus.CLOSED
+        ]
 
     def get_incidents_by_category(self, category: str) -> list[Incident]:
         return [i for i in self.incidents.values() if i.category == category]
 
     def get_incidents_by_timeframe(self, start: datetime, end: datetime) -> list[Incident]:
-        return [
-            i for i in self.incidents.values()
-            if start <= i.created_at <= end
-        ]
+        return [i for i in self.incidents.values() if start <= i.created_at <= end]
 
     def get_statistics(self) -> dict[str, Any]:
         total = len(self.incidents)
@@ -392,7 +450,8 @@ class IncidentManager:
     def search_incidents(self, query: str) -> list[Incident]:
         query_lower = query.lower()
         return [
-            i for i in self.incidents.values()
+            i
+            for i in self.incidents.values()
             if query_lower in i.title.lower()
             or query_lower in i.description.lower()
             or query_lower in i.category.lower()
@@ -490,12 +549,14 @@ class IncidentManager:
         escalated = []
         for incident in self.incidents.values():
             if incident.escalation_contact:
-                escalated.append({
-                    "incident_id": incident.incident_id,
-                    "title": incident.title,
-                    "severity": incident.severity.value,
-                    "status": incident.status.value,
-                    "escalation_contact": incident.escalation_contact,
-                    "assignee": incident.assignee,
-                })
+                escalated.append(
+                    {
+                        "incident_id": incident.incident_id,
+                        "title": incident.title,
+                        "severity": incident.severity.value,
+                        "status": incident.status.value,
+                        "escalation_contact": incident.escalation_contact,
+                        "assignee": incident.assignee,
+                    }
+                )
         return escalated

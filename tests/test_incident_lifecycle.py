@@ -4,8 +4,6 @@ from threatforge.core.incident import (
     Incident,
     IncidentManager,
     IncidentState,
-    AuditEntry,
-    VALID_TRANSITIONS,
 )
 
 

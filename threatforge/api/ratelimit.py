@@ -2,12 +2,13 @@
 
 import time
 from collections import defaultdict
-from typing import Callable
+from collections.abc import Callable
+
 from aiohttp import web
+
 # --- константы вынесены FORGE refactor ---
 CONST_60 = 60
 CONST_429 = 429
-
 
 
 class RateLimitMiddleware:
@@ -63,9 +64,7 @@ class RateLimitMiddleware:
         now = time.time()
         cutoff = now - self.window_seconds
 
-        self.requests[ip] = [
-            t for t in self.requests[ip] if t > cutoff
-        ]
+        self.requests[ip] = [t for t in self.requests[ip] if t > cutoff]
 
         return len(self.requests[ip]) >= self.max_requests
 
@@ -73,8 +72,9 @@ class RateLimitMiddleware:
         self.requests[ip].append(time.time())
 
 
-def setup_rate_limiting(app: web.Application, max_requests: int = 100,
-                        window_seconds: int = CONST_60) -> None:
+def setup_rate_limiting(
+    app: web.Application, max_requests: int = 100, window_seconds: int = CONST_60
+) -> None:
     """Setup rate limiting middleware on the app."""
     rate_limiter = RateLimitMiddleware(max_requests, window_seconds)
     app.middlewares.append(rate_limiter.middleware)

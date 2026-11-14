@@ -2,7 +2,9 @@
 
 import os
 import tempfile
+
 import pytest
+
 from threatforge.core.config import Config
 from threatforge.core.database import Database
 
@@ -86,7 +88,14 @@ def test_incident_severity_levels(tmp_db):
 
 
 def test_incident_status_workflow(tmp_db):
-    statuses = ["new", "investigating", "containment", "eradication", "recovery", "closed"]
+    statuses = [
+        "new",
+        "investigating",
+        "containment",
+        "eradication",
+        "recovery",
+        "closed",
+    ]
     incident = tmp_db.create_incident(title="Status Workflow", severity="high")
 
     for status in statuses:
@@ -106,7 +115,7 @@ def test_event_risk_scoring(tmp_db):
 
 def test_incident_evidence_chain(tmp_db):
     incident = tmp_db.create_incident(title="Evidence Test", severity="critical")
-    
+
     timeline = [
         {"timestamp": "2024-01-01T10:00:00Z", "event": "Alert created"},
         {"timestamp": "2024-01-01T10:05:00Z", "event": "Investigation started"},

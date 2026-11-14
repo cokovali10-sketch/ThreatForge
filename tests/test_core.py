@@ -2,12 +2,14 @@
 
 import os
 import tempfile
+
 import pytest
+
 from threatforge.core.config import Config
 from threatforge.core.database import Database
+
 # --- константы вынесены FORGE refactor ---
 CONST_3 = 3
-
 
 
 @pytest.fixture

@@ -10,11 +10,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any
+
 # --- константы вынесены FORGE refactor ---
 CONST_0_3 = 0.3
 CONST_250 = 250
 CONST_500 = 500
-
 
 
 class ArtifactType(Enum):
@@ -139,25 +139,31 @@ class ForensicsAnalyzer:
                 result.artifacts_found += 1
 
             loaded_dlls = self._extract_loaded_modules(dump_path)
-            result.findings.append({
-                "type": "loaded_modules",
-                "count": len(loaded_dlls),
-                "suspicious": [d for d in loaded_dlls if self._is_suspicious_module(d)],
-            })
+            result.findings.append(
+                {
+                    "type": "loaded_modules",
+                    "count": len(loaded_dlls),
+                    "suspicious": [d for d in loaded_dlls if self._is_suspicious_module(d)],
+                }
+            )
 
             injected_code = self._detect_code_injection(dump_path)
             if injected_code:
-                result.findings.append({
-                    "type": "code_injection",
-                    "count": len(injected_code),
-                    "details": injected_code,
-                })
+                result.findings.append(
+                    {
+                        "type": "code_injection",
+                        "count": len(injected_code),
+                        "details": injected_code,
+                    }
+                )
 
             handles = self._extract_handles(dump_path)
-            result.findings.append({
-                "type": "handles",
-                "count": len(handles),
-            })
+            result.findings.append(
+                {
+                    "type": "handles",
+                    "count": len(handles),
+                }
+            )
 
             result.status = AnalysisStatus.COMPLETED
             result.completed_at = datetime.utcnow()
@@ -167,7 +173,9 @@ class ForensicsAnalyzer:
         self.analysis_results[result.analysis_id] = result
         return result
 
-    def analyze_disk_image(self, image_path: str, partitions: list[str] | None = None) -> AnalysisResult:
+    def analyze_disk_image(
+        self, image_path: str, partitions: list[str] | None = None
+    ) -> AnalysisResult:
         result = AnalysisResult(
             analysis_id=str(uuid.uuid4()),
             analysis_type="disk_image",
@@ -242,7 +250,9 @@ class ForensicsAnalyzer:
         self.analysis_results[result.analysis_id] = result
         return result
 
-    def correlate_logs(self, log_sources: list[str], time_window_minutes: int = 60) -> AnalysisResult:
+    def correlate_logs(
+        self, log_sources: list[str], time_window_minutes: int = 60
+    ) -> AnalysisResult:
         result = AnalysisResult(
             analysis_id=str(uuid.uuid4()),
             analysis_type="log_correlation",
@@ -293,26 +303,30 @@ class ForensicsAnalyzer:
             events.sort(key=lambda e: e.timestamp)
 
             clusters = self._cluster_timeline_events(events)
-            result.findings.append({
-                "type": "timeline_clusters",
-                "count": len(clusters),
-                "clusters": [
-                    {
-                        "start": cluster[0].timestamp.isoformat(),
-                        "end": cluster[-1].timestamp.isoformat(),
-                        "event_count": len(cluster),
-                        "event_types": list(set(e.event_type for e in cluster)),
-                    }
-                    for cluster in clusters
-                ],
-            })
+            result.findings.append(
+                {
+                    "type": "timeline_clusters",
+                    "count": len(clusters),
+                    "clusters": [
+                        {
+                            "start": cluster[0].timestamp.isoformat(),
+                            "end": cluster[-1].timestamp.isoformat(),
+                            "event_count": len(cluster),
+                            "event_types": list(set(e.event_type for e in cluster)),
+                        }
+                        for cluster in clusters
+                    ],
+                }
+            )
 
             anomalies = self._detect_timeline_anomalies(events)
-            result.findings.append({
-                "type": "timeline_anomalies",
-                "count": len(anomalies),
-                "anomalies": anomalies,
-            })
+            result.findings.append(
+                {
+                    "type": "timeline_anomalies",
+                    "count": len(anomalies),
+                    "anomalies": anomalies,
+                }
+            )
 
             self.timeline.extend(events)
             result.timeline_events = len(events)
@@ -439,7 +453,9 @@ class ForensicsAnalyzer:
     def extract_usb_history(self, system_root: str) -> list[Artifact]:
         artifacts: list[Artifact] = []
         usb_stor_key = r"SYSTEM\CurrentControlSet\Enum\USBSTOR"
-        usb_values = self._read_registry_key(os.path.join(system_root, "System32", "config", "SYSTEM"), usb_stor_key)
+        usb_values = self._read_registry_key(
+            os.path.join(system_root, "System32", "config", "SYSTEM"), usb_stor_key
+        )
         if usb_values:
             artifact = Artifact(
                 artifact_id=str(uuid.uuid4()),
@@ -464,26 +480,52 @@ class ForensicsAnalyzer:
         path = process_info.get("path", "").lower()
         command_line = process_info.get("command_line", "").lower()
 
-        suspicious_locations = ["\\temp\\", "\\tmp\\", "\\appdata\\local\\temp\\", "\\downloads\\"]
+        suspicious_locations = [
+            "\\temp\\",
+            "\\tmp\\",
+            "\\appdata\\local\\temp\\",
+            "\\downloads\\",
+        ]
         for loc in suspicious_locations:
             if loc in path:
                 analysis["indicators"].append(f"Running from suspicious location: {path}")
                 analysis["risk_score"] += CONST_0_3
 
         lolbins = [
-            "powershell.exe", "cmd.exe", "wscript.exe", "cscript.exe",
-            "mshta.exe", "regsvr32.exe", "rundll32.exe", "certutil.exe",
-            "bitsadmin.exe", "msiexec.exe",
+            "powershell.exe",
+            "cmd.exe",
+            "wscript.exe",
+            "cscript.exe",
+            "mshta.exe",
+            "regsvr32.exe",
+            "rundll32.exe",
+            "certutil.exe",
+            "bitsadmin.exe",
+            "msiexec.exe",
         ]
         if name in lolbins:
             analysis["indicators"].append(f"Known LOLBin: {name}")
             analysis["risk_score"] += 0.2
 
-        if any(kw in command_line for kw in ["-enc", "bypass", "hidden", "downloadstring", "invoke-expression", "iex"]):
+        if any(
+            kw in command_line
+            for kw in [
+                "-enc",
+                "bypass",
+                "hidden",
+                "downloadstring",
+                "invoke-expression",
+                "iex",
+            ]
+        ):
             analysis["indicators"].append("Suspicious command-line arguments detected")
             analysis["risk_score"] += CONST_0_3
 
-        if process_info.get("parent_name", "").lower() in ["winword.exe", "excel.exe", "outlook.exe"]:
+        if process_info.get("parent_name", "").lower() in [
+            "winword.exe",
+            "excel.exe",
+            "outlook.exe",
+        ]:
             if name in ["cmd.exe", "powershell.exe", "wscript.exe"]:
                 analysis["indicators"].append("Office application spawned suspicious child process")
                 analysis["risk_score"] += 0.4
@@ -494,9 +536,12 @@ class ForensicsAnalyzer:
 
         analysis["risk_score"] = min(1.0, analysis["risk_score"])
         analysis["risk_level"] = (
-            "critical" if analysis["risk_score"] >= 0.8
-            else "high" if analysis["risk_score"] >= 0.6
-            else "medium" if analysis["risk_score"] >= CONST_0_3
+            "critical"
+            if analysis["risk_score"] >= 0.8
+            else "high"
+            if analysis["risk_score"] >= 0.6
+            else "medium"
+            if analysis["risk_score"] >= CONST_0_3
             else "low"
         )
         return analysis
@@ -515,23 +560,27 @@ class ForensicsAnalyzer:
                     h = algo()
                     h.update(data)
                     hashes[name] = h.hexdigest()
-        except (IOError, OSError):
+        except OSError:
             pass
         return hashes
 
-    def search_artifacts(self, query: str, artifact_type: ArtifactType | None = None) -> list[Artifact]:
+    def search_artifacts(
+        self, query: str, artifact_type: ArtifactType | None = None
+    ) -> list[Artifact]:
         results: list[Artifact] = []
         query_lower = query.lower()
         for artifact in self.artifacts.values():
             if artifact_type and artifact.artifact_type != artifact_type:
                 continue
-            if query_lower in json.dumps(artifact.data).lower():
-                results.append(artifact)
-            elif any(query_lower in tag.lower() for tag in artifact.tags):
+            if query_lower in json.dumps(artifact.data).lower() or any(
+                query_lower in tag.lower() for tag in artifact.tags
+            ):
                 results.append(artifact)
         return results
 
-    def get_timeline(self, start_time: datetime | None = None, end_time: datetime | None = None) -> list[TimelineEvent]:
+    def get_timeline(
+        self, start_time: datetime | None = None, end_time: datetime | None = None
+    ) -> list[TimelineEvent]:
         events = self.timeline
         if start_time:
             events = [e for e in events if e.timestamp >= start_time]
@@ -592,23 +641,51 @@ class ForensicsAnalyzer:
     def _extract_running_processes(self, dump_path: str) -> list[dict[str, Any]]:
         return [
             {"pid": 4, "name": "System", "path": "System", "command_line": ""},
-            {"pid": 528, "name": "smss.exe", "path": "\\SystemRoot\\System32\\smss.exe", "command_line": ""},
-            {"pid": 680, "name": "csrss.exe", "path": "\\SystemRoot\\System32\\csrss.exe", "command_line": ""},
+            {
+                "pid": 528,
+                "name": "smss.exe",
+                "path": "\\SystemRoot\\System32\\smss.exe",
+                "command_line": "",
+            },
+            {
+                "pid": 680,
+                "name": "csrss.exe",
+                "path": "\\SystemRoot\\System32\\csrss.exe",
+                "command_line": "",
+            },
         ]
 
     def _extract_network_connections(self, dump_path: str) -> list[dict[str, Any]]:
         return [
-            {"local_ip": "192.168.1.100", "local_port": 49152, "remote_ip": "10.0.0.1", "remote_port": 443, "state": "ESTABLISHED", "pid": 1234},
+            {
+                "local_ip": "192.168.1.100",
+                "local_port": 49152,
+                "remote_ip": "10.0.0.1",
+                "remote_port": 443,
+                "state": "ESTABLISHED",
+                "pid": 1234,
+            },
         ]
 
     def _extract_loaded_modules(self, dump_path: str) -> list[dict[str, Any]]:
         return [
-            {"name": "ntoskrnl.exe", "base_address": "0xFFFFF80000000000", "size": "10MB"},
+            {
+                "name": "ntoskrnl.exe",
+                "base_address": "0xFFFFF80000000000",
+                "size": "10MB",
+            },
             {"name": "ntdll.dll", "base_address": "0x00007FFE00000000", "size": "2MB"},
         ]
 
     def _is_suspicious_module(self, module: dict[str, Any]) -> bool:
-        suspicious = ["mimikatz", "invoke-mimikatz", "procdump", "psexec", "nc.exe", "netcat"]
+        suspicious = [
+            "mimikatz",
+            "invoke-mimikatz",
+            "procdump",
+            "psexec",
+            "nc.exe",
+            "netcat",
+        ]
         name = module.get("name", "").lower()
         return any(s in name for s in suspicious)
 
@@ -688,19 +765,23 @@ class ForensicsAnalyzer:
     def _load_log_source(self, source: str) -> list[dict[str, Any]]:
         return []
 
-    def _find_log_correlations(self, events: list[dict[str, Any]], time_window_minutes: int) -> list[dict[str, Any]]:
+    def _find_log_correlations(
+        self, events: list[dict[str, Any]], time_window_minutes: int
+    ) -> list[dict[str, Any]]:
         correlations: list[dict[str, Any]] = []
         by_source: dict[str, list[dict]] = defaultdict(list)
         for event in events:
             by_source[event.get("source", "")].append(event)
         for source, source_events in by_source.items():
             if len(source_events) > 100:
-                correlations.append({
-                    "type": "high_volume_source",
-                    "source": source,
-                    "event_count": len(source_events),
-                    "description": f"High volume of events from {source}",
-                })
+                correlations.append(
+                    {
+                        "type": "high_volume_source",
+                        "source": source,
+                        "event_count": len(source_events),
+                        "description": f"High volume of events from {source}",
+                    }
+                )
         return correlations
 
     def _detect_suspicious_log_patterns(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -708,12 +789,14 @@ class ForensicsAnalyzer:
         failed_logins = [e for e in events if e.get("event_type") == "failed_login"]
         if len(failed_logins) > 20:
             sources = set(e.get("source_ip", "") for e in failed_logins)
-            findings.append({
-                "type": "brute_force_pattern",
-                "failed_attempts": len(failed_logins),
-                "unique_sources": len(sources),
-                "description": f"Potential brute force: {len(failed_logins)} failed logins from {len(sources)} sources",
-            })
+            findings.append(
+                {
+                    "type": "brute_force_pattern",
+                    "failed_attempts": len(failed_logins),
+                    "unique_sources": len(sources),
+                    "description": f"Potential brute force: {len(failed_logins)} failed logins from {len(sources)} sources",
+                }
+            )
         return findings
 
     def _analyze_authentication_patterns(self, auth_events: list[dict[str, Any]]) -> dict[str, Any]:
@@ -752,25 +835,29 @@ class ForensicsAnalyzer:
         for i in range(1, len(events)):
             gap = (events[i].timestamp - events[i - 1].timestamp).total_seconds()
             if gap > 3600:
-                anomalies.append({
-                    "type": "time_gap",
-                    "start": events[i - 1].timestamp.isoformat(),
-                    "end": events[i].timestamp.isoformat(),
-                    "gap_seconds": gap,
-                    "description": f"Time gap of {gap:.0f} seconds between events",
-                })
+                anomalies.append(
+                    {
+                        "type": "time_gap",
+                        "start": events[i - 1].timestamp.isoformat(),
+                        "end": events[i].timestamp.isoformat(),
+                        "gap_seconds": gap,
+                        "description": f"Time gap of {gap:.0f} seconds between events",
+                    }
+                )
         type_counts: dict[str, int] = defaultdict(int)
         for event in events:
             type_counts[event.event_type] += 1
         for event_type, count in type_counts.items():
             if count > len(events) * CONST_0_3:
-                anomalies.append({
-                    "type": "dominant_event_type",
-                    "event_type": event_type,
-                    "count": count,
-                    "percentage": count / len(events) * 100,
-                    "description": f"Event type '{event_type}' accounts for {count / len(events) * 100:.1f}% of all events",
-                })
+                anomalies.append(
+                    {
+                        "type": "dominant_event_type",
+                        "event_type": event_type,
+                        "count": count,
+                        "percentage": count / len(events) * 100,
+                        "description": f"Event type '{event_type}' accounts for {count / len(events) * 100:.1f}% of all events",
+                    }
+                )
         return anomalies
 
     def _parse_browser_database(self, db_path: str, artifact_type: str) -> list[dict[str, Any]]:

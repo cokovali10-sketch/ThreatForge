@@ -8,30 +8,32 @@ using scapy with support for TCP, UDP, ICMP, HTTP, and DNS parsing.
 import time
 import uuid
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any
 
 try:
     from scapy.all import (
-        IP,
-        TCP,
-        UDP,
-        ICMP,
         DNS,
         DNSQR,
         DNSRR,
+        ICMP,
+        IP,
+        TCP,
+        UDP,
         Raw,
-        sniff as scapy_sniff,
-        wrpcap,
-        rdpcap,
-        conf,
     )
+    from scapy.all import (
+        sniff as scapy_sniff,
+    )
+
     SCAPY_AVAILABLE = True
 except ImportError:
     SCAPY_AVAILABLE = False
 
 from threatforge.core.config import Config
 from threatforge.core.logger import Logger
+
 # --- константы вынесены FORGE refactor ---
 CONST_3 = 3
 CONST_4 = 4
@@ -42,24 +44,24 @@ CONST_200 = 200
 CONST_443 = 443
 
 
-
 @dataclass
 class PacketInfo:
     """Parsed packet information."""
+
     id: str
     timestamp: float
     source_ip: str
     destination_ip: str
-    source_port: Optional[int] = None
-    destination_port: Optional[int] = None
+    source_port: int | None = None
+    destination_port: int | None = None
     protocol: str = "unknown"
-    protocol_number: Optional[int] = None
+    protocol_number: int | None = None
     length: int = 0
-    flags: Optional[str] = None
-    ttl: Optional[int] = None
-    window_size: Optional[int] = None
+    flags: str | None = None
+    ttl: int | None = None
+    window_size: int | None = None
     payload_size: int = 0
-    payload_preview: Optional[str] = None
+    payload_preview: str | None = None
     headers: dict = field(default_factory=dict)
     anomalies: list[str] = field(default_factory=list)
     application_data: dict = field(default_factory=dict)
@@ -88,6 +90,7 @@ class PacketInfo:
 @dataclass
 class CaptureStats:
     """Statistics for a capture session."""
+
     total_packets: int = 0
     protocol_counts: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     port_counts: dict[int, int] = field(default_factory=lambda: defaultdict(int))
@@ -155,30 +158,53 @@ class PacketSniffer:
     """
 
     COMMON_PORTS = {
-        20: "FTP-Data", 21: "FTP", 22: "SSH", 23: "Telnet",
-        25: "SMTP", 53: "DNS", 67: "DHCP", 68: "DHCP",
-        CONST_80: "HTTP", 110: "POP3", 111: "RPC", 135: "MS-RPC",
-        139: "NetBIOS", 143: "IMAP", CONST_443: "HTTPS", 445: "SMB",
-        993: "IMAPS", 995: "POP3S", 1433: "MSSQL", 1521: "Oracle",
-        3306: "MySQL", 3389: "RDP", 5432: "PostgreSQL",
-        5900: "VNC", 6379: "Redis", 8080: "HTTP-Alt", 8443: "HTTPS-Alt",
+        20: "FTP-Data",
+        21: "FTP",
+        22: "SSH",
+        23: "Telnet",
+        25: "SMTP",
+        53: "DNS",
+        67: "DHCP",
+        68: "DHCP",
+        CONST_80: "HTTP",
+        110: "POP3",
+        111: "RPC",
+        135: "MS-RPC",
+        139: "NetBIOS",
+        143: "IMAP",
+        CONST_443: "HTTPS",
+        445: "SMB",
+        993: "IMAPS",
+        995: "POP3S",
+        1433: "MSSQL",
+        1521: "Oracle",
+        3306: "MySQL",
+        3389: "RDP",
+        5432: "PostgreSQL",
+        5900: "VNC",
+        6379: "Redis",
+        8080: "HTTP-Alt",
+        8443: "HTTPS-Alt",
     }
 
     TCP_FLAGS = {
-        0x01: "FIN", 0x02: "SYN", CONST_4: "RST",
-        CONST_8: "PSH", 0x10: "ACK", 0x20: "URG",
+        0x01: "FIN",
+        0x02: "SYN",
+        CONST_4: "RST",
+        CONST_8: "PSH",
+        0x10: "ACK",
+        0x20: "URG",
     }
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Config | None = None):
         if not SCAPY_AVAILABLE:
             raise ImportError(
-                "scapy is required for packet sniffing. "
-                "Install it with: pip install scapy"
+                "scapy is required for packet sniffing. Install it with: pip install scapy"
             )
 
         self.config = config or Config()
         self.logger = Logger("threatforge.sniffer", self.config)
-        self._capture_id: Optional[str] = None
+        self._capture_id: str | None = None
         self._stats = CaptureStats()
         self._packets: list[PacketInfo] = []
         self._callbacks: list[Callable[[PacketInfo], None]] = []
@@ -199,10 +225,10 @@ class PacketSniffer:
 
     def start_capture(
         self,
-        interface: Optional[str] = None,
+        interface: str | None = None,
         filter_expr: str = "",
         packet_count: int = 0,
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
         store: bool = True,
     ) -> str:
         """
@@ -226,7 +252,7 @@ class PacketSniffer:
         self._stats.start_time = time.time()
 
         iface = interface or self.config.network.interface
-        count = packet_count if packet_count > 0 else 0
+        count = max(0, packet_count)
 
         self.logger.info(
             "Starting packet capture",
@@ -383,7 +409,9 @@ class PacketSniffer:
             payload = bytes(pkt[Raw].load)
             decoded = payload.decode("utf-8", errors="replace")
 
-            if decoded.startswith(("GET ", "POST ", "PUT ", "DELETE ", "HEAD ", "OPTIONS ", "PATCH ")):
+            if decoded.startswith(
+                ("GET ", "POST ", "PUT ", "DELETE ", "HEAD ", "OPTIONS ", "PATCH ")
+            ):
                 lines = decoded.split("\r\n")
                 if lines:
                     parts = lines[0].split(" ", 2)
@@ -397,8 +425,16 @@ class PacketSniffer:
                     if ":" in line:
                         key, value = line.split(":", 1)
                         key = key.strip().lower()
-                        if key in ("host", "user-agent", "content-type", "content-length",
-                                   "accept", "referer", "cookie", "authorization"):
+                        if key in (
+                            "host",
+                            "user-agent",
+                            "content-type",
+                            "content-length",
+                            "accept",
+                            "referer",
+                            "cookie",
+                            "authorization",
+                        ):
                             packet_info.application_data[f"http_{key}"] = value.strip()
 
             elif decoded.startswith("HTTP/"):
@@ -427,15 +463,30 @@ class PacketSniffer:
             opcodes = {0: "QUERY", 1: "IQUERY", 2: "STATUS"}
             packet_info.application_data["dns_opcode"] = opcodes.get(dns.opcode, str(dns.opcode))
 
-            rcodes = {0: "No Error", 1: "Format Error", 2: "Server Failure",
-                      CONST_3: "Name Error", CONST_4: "Not Implemented", CONST_5: "Refused"}
+            rcodes = {
+                0: "No Error",
+                1: "Format Error",
+                2: "Server Failure",
+                CONST_3: "Name Error",
+                CONST_4: "Not Implemented",
+                CONST_5: "Refused",
+            }
             packet_info.application_data["dns_rcode"] = rcodes.get(dns.rcode, str(dns.rcode))
 
             if dns.qdcount > 0 and DNSQR in dns:
                 packet_info.application_data["dns_query_name"] = dns.qd.qname.decode(
                     "utf-8", errors="replace"
                 )
-                qtypes = {1: "A", 2: "NS", CONST_5: "CNAME", 6: "SOA", 12: "PTR", 15: "MX", 28: "AAAA", 255: "ANY"}
+                qtypes = {
+                    1: "A",
+                    2: "NS",
+                    CONST_5: "CNAME",
+                    6: "SOA",
+                    12: "PTR",
+                    15: "MX",
+                    28: "AAAA",
+                    255: "ANY",
+                }
                 packet_info.application_data["dns_query_type"] = qtypes.get(
                     dns.qd.qtype, str(dns.qd.qtype)
                 )
@@ -448,12 +499,14 @@ class PacketSniffer:
                         rdata = rr.rdata
                         if isinstance(rdata, bytes):
                             rdata = rdata.decode("utf-8", errors="replace")
-                        answers.append({
-                            "name": rr.rrname.decode("utf-8", errors="replace"),
-                            "type": rr.type,
-                            "ttl": rr.ttl,
-                            "data": str(rdata),
-                        })
+                        answers.append(
+                            {
+                                "name": rr.rrname.decode("utf-8", errors="replace"),
+                                "type": rr.type,
+                                "ttl": rr.ttl,
+                                "data": str(rdata),
+                            }
+                        )
                         rr = rr.payload
                 packet_info.application_data["dns_answers"] = answers
 
@@ -491,10 +544,10 @@ class PacketSniffer:
 
     def get_packets(
         self,
-        source_ip: Optional[str] = None,
-        destination_ip: Optional[str] = None,
-        protocol: Optional[str] = None,
-        port: Optional[int] = None,
+        source_ip: str | None = None,
+        destination_ip: str | None = None,
+        protocol: str | None = None,
+        port: int | None = None,
     ) -> list[PacketInfo]:
         """Get captured packets with optional filtering."""
         if self._packets is None:
@@ -509,10 +562,7 @@ class PacketSniffer:
         if protocol:
             result = [p for p in result if p.protocol == protocol.lower()]
         if port is not None:
-            result = [
-                p for p in result
-                if p.source_port == port or p.destination_port == port
-            ]
+            result = [p for p in result if p.source_port == port or p.destination_port == port]
 
         return result
 
@@ -538,6 +588,6 @@ class PacketSniffer:
         return self._sniffing
 
     @property
-    def capture_id(self) -> Optional[str]:
+    def capture_id(self) -> str | None:
         """Get current capture session ID."""
         return self._capture_id

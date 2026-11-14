@@ -1,5 +1,5 @@
 from .detection import ThreatDetector
-from .ioc import IOCManager
 from .intelligence import ThreatIntel
+from .ioc import IOCManager
 
-__all__ = ["ThreatDetector", "IOCManager", "ThreatIntel"]
+__all__ = ["IOCManager", "ThreatDetector", "ThreatIntel"]

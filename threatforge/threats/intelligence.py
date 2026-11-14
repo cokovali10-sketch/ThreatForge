@@ -8,11 +8,11 @@ from enum import Enum
 from typing import Any
 
 from .ioc import IOCManager, IOCType
+
 # --- константы вынесены FORGE refactor ---
 CONST_0_15 = 0.15
 CONST_0_5 = 0.5
 CONST_24 = 24
-
 
 
 class FeedStatus(Enum):
@@ -204,7 +204,9 @@ class ThreatIntel:
             return iocs
         events = data if isinstance(data, list) else data.get("response", [])
         for event_wrapper in events:
-            event = event_wrapper.get("Event", event_wrapper) if isinstance(event_wrapper, dict) else {}
+            event = (
+                event_wrapper.get("Event", event_wrapper) if isinstance(event_wrapper, dict) else {}
+            )
             for attr in event.get("Attribute", []):
                 attr_type = attr.get("type", "").lower()
                 value = attr.get("value", "")
@@ -323,7 +325,9 @@ class ThreatIntel:
 
     def calculate_threat_score(self, ioc_ids: list[str] | None = None) -> float:
         if ioc_ids:
-            iocs = [self.ioc_manager.iocs.get(iid) for iid in ioc_ids if self.ioc_manager.iocs.get(iid)]
+            iocs = [
+                self.ioc_manager.iocs.get(iid) for iid in ioc_ids if self.ioc_manager.iocs.get(iid)
+            ]
         else:
             iocs = [ioc for ioc in self.ioc_manager.iocs.values() if ioc.status.value == "active"]
         if not iocs:
@@ -336,21 +340,33 @@ class ThreatIntel:
         campaign_factor = min(1.0, len(self.campaigns) / 5)
         correlation_factor = min(1.0, len(self.correlations) / 10)
 
-        threat_score = base_score * CONST_0_5 + actor_factor * 0.2 + campaign_factor * CONST_0_15 + correlation_factor * CONST_0_15
+        threat_score = (
+            base_score * CONST_0_5
+            + actor_factor * 0.2
+            + campaign_factor * CONST_0_15
+            + correlation_factor * CONST_0_15
+        )
         return round(min(1.0, max(0.0, threat_score)), 4)
 
-    def export_stix(self, include_iocs: bool = True, include_actors: bool = True, include_campaigns: bool = True) -> str:
+    def export_stix(
+        self,
+        include_iocs: bool = True,
+        include_actors: bool = True,
+        include_campaigns: bool = True,
+    ) -> str:
         stix_objects: list[dict[str, Any]] = []
         identity_id = str(uuid.uuid4())
-        stix_objects.append({
-            "type": "identity",
-            "spec_version": "2.1",
-            "id": f"identity--{identity_id}",
-            "created": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "modified": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "name": "ThreatForge Intelligence",
-            "identity_class": "organization",
-        })
+        stix_objects.append(
+            {
+                "type": "identity",
+                "spec_version": "2.1",
+                "id": f"identity--{identity_id}",
+                "created": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "modified": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "name": "ThreatForge Intelligence",
+                "identity_class": "organization",
+            }
+        )
 
         if include_actors:
             for actor in self.actors.values():
@@ -358,7 +374,9 @@ class ThreatIntel:
                     "type": "threat-actor",
                     "spec_version": "2.1",
                     "id": f"threat-actor--{actor.actor_id}",
-                    "created": (actor.first_seen or datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "created": (actor.first_seen or datetime.utcnow()).strftime(
+                        "%Y-%m-%dT%H:%M:%SZ"
+                    ),
                     "modified": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "name": actor.name,
                     "aliases": actor.aliases,
@@ -367,7 +385,10 @@ class ThreatIntel:
                     "resource_level": "unknown",
                     "primary_motivation": actor.motivation,
                     "goals": actor.target_sectors,
-                    "external_references": [{"source_name": "threatforge", "description": ref} for ref in actor.references],
+                    "external_references": [
+                        {"source_name": "threatforge", "description": ref}
+                        for ref in actor.references
+                    ],
                 }
                 stix_objects.append(threat_actor)
 
@@ -377,12 +398,18 @@ class ThreatIntel:
                     "type": "campaign",
                     "spec_version": "2.1",
                     "id": f"campaign--{campaign.campaign_id}",
-                    "created": (campaign.first_seen or datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "created": (campaign.first_seen or datetime.utcnow()).strftime(
+                        "%Y-%m-%dT%H:%M:%SZ"
+                    ),
                     "modified": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "name": campaign.name,
                     "description": campaign.description,
-                    "first_seen": campaign.first_seen.strftime("%Y-%m-%dT%H:%M:%SZ") if campaign.first_seen else None,
-                    "last_seen": campaign.last_seen.strftime("%Y-%m-%dT%H:%M:%SZ") if campaign.last_seen else None,
+                    "first_seen": campaign.first_seen.strftime("%Y-%m-%dT%H:%M:%SZ")
+                    if campaign.first_seen
+                    else None,
+                    "last_seen": campaign.last_seen.strftime("%Y-%m-%dT%H:%M:%SZ")
+                    if campaign.last_seen
+                    else None,
                 }
                 stix_objects.append(stix_campaign)
 
@@ -402,7 +429,9 @@ class ThreatIntel:
                         "description": ioc.description,
                         "pattern": pattern,
                         "pattern_type": "stix",
-                        "valid_from": ioc.first_seen.strftime("%Y-%m-%dT%H:%M:%SZ") if ioc.first_seen else ioc.created_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "valid_from": ioc.first_seen.strftime("%Y-%m-%dT%H:%M:%SZ")
+                        if ioc.first_seen
+                        else ioc.created_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
                         "confidence": int(ioc.confidence * 100),
                         "labels": ioc.tags,
                         "indicator_types": [ioc.type.value],
@@ -439,7 +468,8 @@ class ThreatIntel:
     def search_actors(self, query: str) -> list[ThreatActor]:
         query_lower = query.lower()
         return [
-            actor for actor in self.actors.values()
+            actor
+            for actor in self.actors.values()
             if query_lower in actor.name.lower()
             or any(query_lower in alias.lower() for alias in actor.aliases)
             or query_lower in actor.description.lower()
@@ -449,9 +479,9 @@ class ThreatIntel:
     def search_campaigns(self, query: str) -> list[ThreatCampaign]:
         query_lower = query.lower()
         return [
-            campaign for campaign in self.campaigns.values()
-            if query_lower in campaign.name.lower()
-            or query_lower in campaign.description.lower()
+            campaign
+            for campaign in self.campaigns.values()
+            if query_lower in campaign.name.lower() or query_lower in campaign.description.lower()
         ]
 
     def get_actor_by_id(self, actor_id: str) -> ThreatActor | None:
@@ -498,11 +528,23 @@ class ThreatIntel:
     def export_iocs_as_csv(self) -> str:
         import csv
         import io
+
         output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=[
-            "ioc_id", "type", "value", "confidence", "severity",
-            "source", "description", "tags", "status", "created_at",
-        ])
+        writer = csv.DictWriter(
+            output,
+            fieldnames=[
+                "ioc_id",
+                "type",
+                "value",
+                "confidence",
+                "severity",
+                "source",
+                "description",
+                "tags",
+                "status",
+                "created_at",
+            ],
+        )
         writer.writeheader()
         for ioc_dict in self.ioc_manager.get_iocs_as_dicts():
             writer.writerow({k: ioc_dict.get(k, "") for k in writer.fieldnames})

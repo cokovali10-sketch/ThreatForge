@@ -1,15 +1,16 @@
 """Authentication middleware for ThreatForge SOC platform."""
 
+import base64
 import hashlib
 import hmac
 import json
-import base64
 import time
-from typing import Optional, Callable
+from collections.abc import Callable
+
 from aiohttp import web
+
 # --- константы вынесены FORGE refactor ---
 CONST_4 = 4
-
 
 
 class AuthMiddleware:
@@ -96,7 +97,7 @@ class AuthMiddleware:
         except Exception:
             return False
 
-    def _get_user_by_api_key(self, api_key: str) -> Optional[dict]:
+    def _get_user_by_api_key(self, api_key: str) -> dict | None:
         if not self.db:
             return None
         return self.db.get_user_by_api_key(api_key)

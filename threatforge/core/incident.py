@@ -3,13 +3,14 @@
 import datetime
 import enum
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class IncidentState(enum.Enum):
     """Incident lifecycle states."""
+
     NEW = "NEW"
     TRIAGED = "TRIAGED"
     INVESTIGATING = "INVESTIGATING"
@@ -58,9 +59,9 @@ class AuditEntry:
         self,
         action: str,
         actor: str,
-        old_value: Optional[str] = None,
-        new_value: Optional[str] = None,
-        notes: Optional[str] = None,
+        old_value: str | None = None,
+        new_value: str | None = None,
+        notes: str | None = None,
     ):
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
         self.action = action
@@ -69,7 +70,7 @@ class AuditEntry:
         self.new_value = new_value
         self.notes = notes
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "timestamp": self.timestamp.isoformat(),
             "action": self.action,
@@ -90,7 +91,7 @@ class Incident:
         title: str,
         description: str,
         severity: str = "medium",
-        assignee: Optional[str] = None,
+        assignee: str | None = None,
     ):
         Incident._counter += 1
         self.id = f"inc-{int(datetime.datetime.now(datetime.timezone.utc).timestamp())}-{Incident._counter:04d}"
@@ -101,12 +102,12 @@ class Incident:
         self.assignee = assignee
         self.created_at = datetime.datetime.now(datetime.timezone.utc)
         self.updated_at = self.created_at
-        self.closed_at: Optional[datetime.datetime] = None
-        self.chain_ids: List[str] = []
-        self.timeline: List[Dict[str, Any]] = []
-        self.audit_trail: List[AuditEntry] = []
-        self.mitre_techniques: List[str] = []
-        self.comments: List[Dict[str, Any]] = []
+        self.closed_at: datetime.datetime | None = None
+        self.chain_ids: list[str] = []
+        self.timeline: list[dict[str, Any]] = []
+        self.audit_trail: list[AuditEntry] = []
+        self.mitre_techniques: list[str] = []
+        self.comments: list[dict[str, Any]] = []
 
         self._add_audit("created", "system", notes="Incident created")
 
@@ -114,9 +115,9 @@ class Incident:
         self,
         action: str,
         actor: str,
-        old_value: Optional[str] = None,
-        new_value: Optional[str] = None,
-        notes: Optional[str] = None,
+        old_value: str | None = None,
+        new_value: str | None = None,
+        notes: str | None = None,
     ):
         entry = AuditEntry(action, actor, old_value, new_value, notes)
         self.audit_trail.append(entry)
@@ -126,7 +127,7 @@ class Incident:
         self,
         next_state: IncidentState,
         actor: str,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> bool:
         """Transition to next state with audit trail."""
         if not self.state.can_transition_to(next_state):
@@ -222,7 +223,7 @@ class Incident:
             notes=reason,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "title": self.title,
@@ -245,29 +246,29 @@ class IncidentManager:
     """Manages all incidents with full lifecycle support."""
 
     def __init__(self):
-        self.incidents: Dict[str, Incident] = {}
+        self.incidents: dict[str, Incident] = {}
 
     def create_incident(
         self,
         title: str,
         description: str,
         severity: str = "medium",
-        assignee: Optional[str] = None,
+        assignee: str | None = None,
     ) -> Incident:
         incident = Incident(title, description, severity, assignee)
         self.incidents[incident.id] = incident
         logger.info("Created incident %s: %s", incident.id, title)
         return incident
 
-    def get_incident(self, incident_id: str) -> Optional[Incident]:
+    def get_incident(self, incident_id: str) -> Incident | None:
         return self.incidents.get(incident_id)
 
     def get_incidents(
         self,
-        state: Optional[IncidentState] = None,
-        severity: Optional[str] = None,
-        assignee: Optional[str] = None,
-    ) -> List[Incident]:
+        state: IncidentState | None = None,
+        severity: str | None = None,
+        assignee: str | None = None,
+    ) -> list[Incident]:
         results = list(self.incidents.values())
 
         if state:
@@ -279,7 +280,7 @@ class IncidentManager:
 
         return results
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         by_state = {}
         by_severity = {}
         for inc in self.incidents.values():

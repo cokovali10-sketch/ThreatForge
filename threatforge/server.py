@@ -8,12 +8,13 @@ from pathlib import Path
 
 from aiohttp import web
 
-from threatforge.api.routes import setup_routes
 from threatforge.api.auth import setup_auth
 from threatforge.api.ratelimit import setup_rate_limiting
+from threatforge.api.routes import setup_routes
 from threatforge.core.config import Config
 from threatforge.core.database import Database
 from threatforge.core.logger import Logger
+
 # --- константы вынесены FORGE refactor ---
 CONST_4 = 4
 CONST_5 = 5
@@ -21,12 +22,12 @@ CONST_60 = 60
 CONST_8443 = 8443
 
 
-
 class ThreatForgeServer:
     """Main aiohttp server for ThreatForge."""
 
-    def __init__(self, host: str = "0.0.0.0", port: int = CONST_8443,
-                 database_path: str = None) -> None:
+    def __init__(
+        self, host: str = "0.0.0.0", port: int = CONST_8443, database_path: str = None
+    ) -> None:
         self.config = Config()
         if database_path:
             self.config.set("database.path", database_path)
@@ -34,11 +35,13 @@ class ThreatForgeServer:
         self.port = port or self.config.server_port
         self.logger = Logger()
         self.db = Database()
-        self.app = web.Application(middlewares=[
-            self.error_middleware,
-            self.logging_middleware,
-            self.cors_middleware,
-        ])
+        self.app = web.Application(
+            middlewares=[
+                self.error_middleware,
+                self.logging_middleware,
+                self.cors_middleware,
+            ]
+        )
         setup_auth(self.app, self.db)
         setup_rate_limiting(self.app, max_requests=200, window_seconds=CONST_60)
         self._background_tasks = []
@@ -160,9 +163,21 @@ class ThreatForgeServer:
         ioc_data = [
             ("ip", "185.220.101.45", 85, "critical", "Known TOR exit node"),
             ("domain", "malware-c2.evil.com", 90, "high", "C2 server domain"),
-            ("hash_md5", "d41d8cd98f00b204e9800998ecf8427e", 75, "high", "Malware sample hash"),
+            (
+                "hash_md5",
+                "d41d8cd98f00b204e9800998ecf8427e",
+                75,
+                "high",
+                "Malware sample hash",
+            ),
             ("ip", "45.33.32.156", CONST_60, "medium", "Suspicious SSH scanner"),
-            ("url", "https://phishing.example.com/login", 95, "critical", "Phishing URL"),
+            (
+                "url",
+                "https://phishing.example.com/login",
+                95,
+                "critical",
+                "Phishing URL",
+            ),
         ]
         for ioc in ioc_data:
             self.db.add_ioc(ioc[0], ioc[1], ioc[2], ioc[3], "threat-intel", ioc[CONST_4])
@@ -219,8 +234,16 @@ Examples:
     )
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
     serve_parser = subparsers.add_parser("serve", help="Start the ThreatForge server")
-    serve_parser.add_argument("-H", "--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
-    serve_parser.add_argument("-p", "--port", type=int, default=CONST_8443, help="Port to listen on (default: 8443)")
+    serve_parser.add_argument(
+        "-H", "--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)"
+    )
+    serve_parser.add_argument(
+        "-p",
+        "--port",
+        type=int,
+        default=CONST_8443,
+        help="Port to listen on (default: 8443)",
+    )
     serve_parser.add_argument("--db", default=None, help="Database file path")
     serve_parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     subparsers.add_parser("version", help="Show version information")

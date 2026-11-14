@@ -12,10 +12,10 @@ import struct
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional
 
 from threatforge.core.config import Config
 from threatforge.core.logger import Logger
+
 # --- константы вынесены FORGE refactor ---
 CONST_3 = 3
 CONST_4 = 4
@@ -43,18 +43,18 @@ CONST_5353 = 5353
 CONST_65535 = 65535
 
 
-
 @dataclass
 class PortResult:
     """Result of a single port scan."""
+
     port: int
     state: str
     protocol: str = "tcp"
-    service: Optional[str] = None
-    version: Optional[str] = None
-    banner: Optional[str] = None
+    service: str | None = None
+    version: str | None = None
+    banner: str | None = None
     response_time: float = 0.0
-    error: Optional[str] = None
+    error: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -72,14 +72,15 @@ class PortResult:
 @dataclass
 class HostResult:
     """Scan result for a single host."""
+
     ip: str
-    hostname: Optional[str] = None
+    hostname: str | None = None
     state: str = "unknown"
     open_ports: list[PortResult] = field(default_factory=list)
-    os_guess: Optional[str] = None
-    os_details: Optional[dict] = field(default_factory=dict)
-    mac_address: Optional[str] = None
-    vendor: Optional[str] = None
+    os_guess: str | None = None
+    os_details: dict | None = field(default_factory=dict)
+    mac_address: str | None = None
+    vendor: str | None = None
     scan_time: float = 0.0
     start_time: float = 0.0
     end_time: float = 0.0
@@ -106,6 +107,7 @@ class HostResult:
 @dataclass
 class ScanResult:
     """Complete scan result."""
+
     scan_id: str
     scan_type: str
     target: str
@@ -194,19 +196,19 @@ class PortScanner:
     and OS fingerprinting. Uses asyncio for high-performance concurrent scanning.
     """
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Config | None = None):
         self.config = config or Config()
         self.logger = Logger("threatforge.scanner", self.config)
-        self._semaphore: Optional[asyncio.Semaphore] = None
+        self._semaphore: asyncio.Semaphore | None = None
         self._stop_flag = False
         self._scan_progress: dict[str, float] = {}
 
     async def scan_host(
         self,
         target: str,
-        ports: Optional[list[int]] = None,
+        ports: list[int] | None = None,
         scan_type: str = "tcp_connect",
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         service_detection: bool = True,
         os_detection: bool = True,
         banner_grab: bool = True,
@@ -287,9 +289,9 @@ class PortScanner:
     async def scan_network(
         self,
         targets: list[str],
-        ports: Optional[list[int]] = None,
+        ports: list[int] | None = None,
         scan_type: str = "tcp_connect",
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         service_detection: bool = True,
         os_detection: bool = True,
     ) -> ScanResult:
@@ -316,16 +318,14 @@ class PortScanner:
         )
 
         self.logger.info(
-            f"Starting network scan",
+            "Starting network scan",
             scan_id=scan_result.scan_id,
             targets=len(targets),
             scan_type=scan_type,
         )
 
         host_tasks = [
-            self.scan_host(
-                target, ports, scan_type, timeout, service_detection, os_detection
-            )
+            self.scan_host(target, ports, scan_type, timeout, service_detection, os_detection)
             for target in targets
         ]
 
@@ -343,7 +343,7 @@ class PortScanner:
         self._expand_cidr_targets(scan_result)
 
         self.logger.info(
-            f"Network scan complete",
+            "Network scan complete",
             scan_id=scan_result.scan_id,
             hosts_scanned=len(scan_result.hosts),
             open_ports=scan_result.open_ports_found,
@@ -360,9 +360,7 @@ class PortScanner:
             total += ports_per_host
         scan_result.total_ports_scanned = total
 
-    async def _tcp_connect_port(
-        self, target: str, port: int, timeout: float
-    ) -> Optional[PortResult]:
+    async def _tcp_connect_port(self, target: str, port: int, timeout: float) -> PortResult | None:
         """Perform a TCP connect scan on a single port."""
         if self._stop_flag:
             return None
@@ -398,9 +396,7 @@ class PortScanner:
 
             return result
 
-    async def _syn_scan_port(
-        self, target: str, port: int, timeout: float
-    ) -> Optional[PortResult]:
+    async def _syn_scan_port(self, target: str, port: int, timeout: float) -> PortResult | None:
         """
         Perform a SYN scan on a single port.
         Falls back to TCP connect if raw sockets are unavailable.
@@ -416,9 +412,7 @@ class PortScanner:
             )
             return await self._tcp_connect_port(target, port, timeout)
 
-    async def _raw_syn_scan(
-        self, target: str, port: int, timeout: float
-    ) -> PortResult:
+    async def _raw_syn_scan(self, target: str, port: int, timeout: float) -> PortResult:
         """Low-level SYN scan using raw sockets."""
         result = PortResult(port=port, state="closed", protocol="tcp")
         start = time.time()
@@ -452,10 +446,7 @@ class PortScanner:
                         sock.sendto(rst_packet, (target, port))
                     except OSError:
                         pass
-                elif flags & CONST_4:
-                    result.state = "closed"
-                    result.response_time = time.time() - start
-                elif flags & CONST_18 == CONST_20:
+                elif flags & CONST_4 or flags & CONST_18 == CONST_20:
                     result.state = "closed"
                     result.response_time = time.time() - start
             else:
@@ -568,7 +559,7 @@ class PortScanner:
     def _checksum(self, data: bytes) -> int:
         """Calculate IP/TCP checksum."""
         if len(data) % 2:
-            data += b'\x00'
+            data += b"\x00"
 
         s = 0
         for i in range(0, len(data), 2):
@@ -579,7 +570,7 @@ class PortScanner:
         s = ~s & CONST_65535
         return socket.htons(s)
 
-    def _recv_response(self, sock: socket.socket, timeout: float) -> Optional[dict]:
+    def _recv_response(self, sock: socket.socket, timeout: float) -> dict | None:
         """Receive and parse a TCP response."""
         try:
             sock.settimeout(timeout)
@@ -595,7 +586,7 @@ class PortScanner:
             if proto != socket.IPPROTO_TCP:
                 return None
 
-            tcp_header = struct.unpack("!HHIIBBHHH", data[ihl:ihl + CONST_20])
+            tcp_header = struct.unpack("!HHIIBBHHH", data[ihl : ihl + CONST_20])
             flags = tcp_header[CONST_5]
 
             return {
@@ -607,14 +598,12 @@ class PortScanner:
                 "ack": tcp_header[CONST_3],
             }
 
-        except socket.timeout:
+        except TimeoutError:
             return None
         except Exception:
             return None
 
-    async def _udp_scan_port(
-        self, target: str, port: int, timeout: float
-    ) -> Optional[PortResult]:
+    async def _udp_scan_port(self, target: str, port: int, timeout: float) -> PortResult | None:
         """Perform a UDP scan on a single port."""
         if self._stop_flag:
             return None
@@ -638,8 +627,19 @@ class PortScanner:
                     result.state = "open"
                     result.response_time = time.time() - start
 
-                except socket.timeout:
-                    if port in (CONST_53, CONST_67, CONST_68, CONST_123, CONST_161, CONST_162, CONST_500, CONST_514, CONST_1900, CONST_5353):
+                except TimeoutError:
+                    if port in (
+                        CONST_53,
+                        CONST_67,
+                        CONST_68,
+                        CONST_123,
+                        CONST_161,
+                        CONST_162,
+                        CONST_500,
+                        CONST_514,
+                        CONST_1900,
+                        CONST_5353,
+                    ):
                         result.state = "open|filtered"
                     else:
                         result.state = "closed|filtered"
@@ -676,7 +676,7 @@ class PortScanner:
 
         try:
             if port_result.service in ("http", "https"):
-                _, writer = await asyncio.wait_for(
+                reader, writer = await asyncio.wait_for(
                     asyncio.open_connection(target, port_result.port),
                     timeout=self.config.scanner.read_timeout,
                 )
@@ -736,13 +736,13 @@ class PortScanner:
                     port_result.version = part.strip()
                     break
 
-        elif "microsoft" in banner_lower or "iis" in banner_lower:
-            port_result.version = banner.split("\r\n")[0][:100]
-
-        elif "ftpd" in banner_lower or "ftp" in banner_lower:
-            port_result.version = banner.split("\r\n")[0][:100]
-
-        elif "smtp" in banner_lower:
+        elif (
+            "microsoft" in banner_lower
+            or "iis" in banner_lower
+            or "ftpd" in banner_lower
+            or "ftp" in banner_lower
+            or "smtp" in banner_lower
+        ):
             port_result.version = banner.split("\r\n")[0][:100]
 
     async def _detect_os(self, target: str, host_result: HostResult) -> None:
@@ -774,7 +774,7 @@ class PortScanner:
         except Exception as e:
             self.logger.debug(f"OS detection failed for {target}: {e}")
 
-    async def _get_ttl(self, target: str) -> Optional[int]:
+    async def _get_ttl(self, target: str) -> int | None:
         """Get TTL from target using a raw socket probe."""
         try:
             loop = asyncio.get_event_loop()
@@ -784,7 +784,6 @@ class PortScanner:
                 try:
                     sock.settimeout(2.0)
                     icmp_echo = struct.pack("!BBHHH", CONST_8, 0, 0, 1, 1)
-                    identifier = (1 << CONST_16) | 1
                     checksum = self._checksum(icmp_echo)
                     icmp_echo = struct.pack("!BBHHH", CONST_8, 0, checksum, 1, 1)
 
@@ -838,7 +837,7 @@ class PortScanner:
             banner_grab=True,
         )
 
-    async def syn_scan(self, target: str, ports: Optional[list[int]] = None) -> HostResult:
+    async def syn_scan(self, target: str, ports: list[int] | None = None) -> HostResult:
         """Perform a SYN scan."""
         return await self.scan_host(
             target,
@@ -849,10 +848,21 @@ class PortScanner:
             banner_grab=False,
         )
 
-    async def udp_scan(self, target: str, ports: Optional[list[int]] = None) -> HostResult:
+    async def udp_scan(self, target: str, ports: list[int] | None = None) -> HostResult:
         """Perform a UDP scan."""
         if ports is None:
-            ports = [CONST_53, CONST_67, CONST_68, CONST_123, CONST_161, CONST_162, CONST_500, CONST_514, CONST_1900, CONST_5353]
+            ports = [
+                CONST_53,
+                CONST_67,
+                CONST_68,
+                CONST_123,
+                CONST_161,
+                CONST_162,
+                CONST_500,
+                CONST_514,
+                CONST_1900,
+                CONST_5353,
+            ]
 
         return await self.scan_host(
             target,
@@ -872,7 +882,7 @@ class PortScanner:
         """Get the list of common ports from config."""
         return self.config.scanner.common_ports
 
-    def resolve_target(self, target: str) -> Optional[str]:
+    def resolve_target(self, target: str) -> str | None:
         """Resolve a hostname to an IP address."""
         try:
             return socket.gethostbyname(target)

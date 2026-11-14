@@ -13,7 +13,7 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from threatforge.core.config import Config
 
@@ -32,7 +32,7 @@ class Database:
 
     SCHEMA_VERSION = 1
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Config | None = None):
         self.config = config or Config()
         self.db_path = Path(self.config.database.path)
         self._local = threading.local()
@@ -49,13 +49,9 @@ class Database:
             )
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute(
-                f"PRAGMA journal_size_limit={self.config.database.journal_size_limit}"
-            )
+            conn.execute(f"PRAGMA journal_size_limit={self.config.database.journal_size_limit}")
             conn.execute(f"PRAGMA cache_size={self.config.database.cache_size}")
-            conn.execute(
-                f"PRAGMA busy_timeout={self.config.database.busy_timeout}"
-            )
+            conn.execute(f"PRAGMA busy_timeout={self.config.database.busy_timeout}")
             conn.execute("PRAGMA foreign_keys=ON")
             conn.execute("PRAGMA synchronous=NORMAL")
             self._local.conn = conn
@@ -398,19 +394,17 @@ class Database:
 
         return self.get_alert(alert_id)
 
-    def get_alert(self, alert_id: str) -> Optional[dict]:
+    def get_alert(self, alert_id: str) -> dict | None:
         """Get an alert by ID."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM alerts WHERE id = ?", (alert_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM alerts WHERE id = ?", (alert_id,)).fetchone()
         return self._row_to_dict(row) if row else None
 
     def get_alerts(
         self,
-        severity: Optional[str] = None,
-        status: Optional[str] = None,
-        source_ip: Optional[str] = None,
+        severity: str | None = None,
+        status: str | None = None,
+        source_ip: str | None = None,
         limit: int = 100,
         offset: int = 0,
         order_by: str = "created_at DESC",
@@ -436,13 +430,25 @@ class Database:
         rows = conn.execute(query, params).fetchall()
         return [self._row_to_dict(row) for row in rows]
 
-    def update_alert(self, alert_id: str, **kwargs) -> Optional[dict]:
+    def update_alert(self, alert_id: str, **kwargs) -> dict | None:
         """Update an alert."""
         allowed_fields = {
-            "severity", "category", "title", "description", "source_ip",
-            "destination_ip", "source_port", "destination_port", "protocol",
-            "indicators", "status", "assignee", "resolution_notes",
-            "mitre_attack_id", "confidence", "tags",
+            "severity",
+            "category",
+            "title",
+            "description",
+            "source_ip",
+            "destination_ip",
+            "source_port",
+            "destination_port",
+            "protocol",
+            "indicators",
+            "status",
+            "assignee",
+            "resolution_notes",
+            "mitre_attack_id",
+            "confidence",
+            "tags",
         }
 
         updates = {}
@@ -468,7 +474,7 @@ class Database:
             cur.execute("DELETE FROM alerts WHERE id = ?", (alert_id,))
             return cur.rowcount > 0
 
-    def count_alerts(self, severity: Optional[str] = None, status: Optional[str] = None) -> int:
+    def count_alerts(self, severity: str | None = None, status: str | None = None) -> int:
         """Count alerts with optional filters."""
         conn = self._get_connection()
         query = "SELECT COUNT(*) FROM alerts WHERE 1=1"
@@ -517,20 +523,18 @@ class Database:
 
         return self.get_event(event_id)
 
-    def get_event(self, event_id: str) -> Optional[dict]:
+    def get_event(self, event_id: str) -> dict | None:
         """Get an event by ID."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM events WHERE id = ?", (event_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
         return self._row_to_dict(row) if row else None
 
     def get_events(
         self,
-        event_type: Optional[str] = None,
-        source: Optional[str] = None,
-        source_ip: Optional[str] = None,
-        min_risk_score: Optional[float] = None,
+        event_type: str | None = None,
+        source: str | None = None,
+        source_ip: str | None = None,
+        min_risk_score: float | None = None,
         limit: int = 100,
         offset: int = 0,
         order_by: str = "timestamp DESC",
@@ -600,20 +604,18 @@ class Database:
 
         return self.get_incident(incident_id)
 
-    def get_incident(self, incident_id: str) -> Optional[dict]:
+    def get_incident(self, incident_id: str) -> dict | None:
         """Get an incident by ID."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM incidents WHERE id = ?", (incident_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM incidents WHERE id = ?", (incident_id,)).fetchone()
         return self._row_to_dict(row) if row else None
 
     def get_incidents(
         self,
-        status: Optional[str] = None,
-        severity: Optional[str] = None,
-        priority: Optional[str] = None,
-        assignee: Optional[str] = None,
+        status: str | None = None,
+        severity: str | None = None,
+        priority: str | None = None,
+        assignee: str | None = None,
         limit: int = 100,
         offset: int = 0,
         order_by: str = "created_at DESC",
@@ -642,13 +644,24 @@ class Database:
         rows = conn.execute(query, params).fetchall()
         return [self._row_to_dict(row) for row in rows]
 
-    def update_incident(self, incident_id: str, **kwargs) -> Optional[dict]:
+    def update_incident(self, incident_id: str, **kwargs) -> dict | None:
         """Update an incident."""
         allowed_fields = {
-            "title", "description", "severity", "status", "priority",
-            "category", "assignee", "reporter", "source_alert_ids",
-            "affected_assets", "indicators", "timeline", "resolution",
-            "lessons_learned", "sla_deadline",
+            "title",
+            "description",
+            "severity",
+            "status",
+            "priority",
+            "category",
+            "assignee",
+            "reporter",
+            "source_alert_ids",
+            "affected_assets",
+            "indicators",
+            "timeline",
+            "resolution",
+            "lessons_learned",
+            "sla_deadline",
         }
 
         updates = {}
@@ -717,20 +730,18 @@ class Database:
 
         return self.get_packet(packet_id)
 
-    def get_packet(self, packet_id: str) -> Optional[dict]:
+    def get_packet(self, packet_id: str) -> dict | None:
         """Get a packet by ID."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM packets WHERE id = ?", (packet_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM packets WHERE id = ?", (packet_id,)).fetchone()
         return self._row_to_dict(row) if row else None
 
     def get_packets(
         self,
-        source_ip: Optional[str] = None,
-        destination_ip: Optional[str] = None,
-        protocol: Optional[str] = None,
-        capture_id: Optional[str] = None,
+        source_ip: str | None = None,
+        destination_ip: str | None = None,
+        protocol: str | None = None,
+        capture_id: str | None = None,
         limit: int = 100,
         offset: int = 0,
         order_by: str = "timestamp DESC",
@@ -765,10 +776,25 @@ class Database:
             return 0
 
         columns = [
-            "id", "capture_id", "source_ip", "destination_ip", "source_port",
-            "destination_port", "protocol", "protocol_number", "length", "flags",
-            "ttl", "window_size", "payload_size", "payload_preview", "headers",
-            "anomalies", "geo_source", "geo_destination", "threat_intel_match",
+            "id",
+            "capture_id",
+            "source_ip",
+            "destination_ip",
+            "source_port",
+            "destination_port",
+            "protocol",
+            "protocol_number",
+            "length",
+            "flags",
+            "ttl",
+            "window_size",
+            "payload_size",
+            "payload_preview",
+            "headers",
+            "anomalies",
+            "geo_source",
+            "geo_destination",
+            "threat_intel_match",
         ]
 
         rows = []
@@ -822,20 +848,18 @@ class Database:
 
         return self.get_log(log_id)
 
-    def get_log(self, log_id: str) -> Optional[dict]:
+    def get_log(self, log_id: str) -> dict | None:
         """Get a log entry by ID."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM logs WHERE id = ?", (log_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM logs WHERE id = ?", (log_id,)).fetchone()
         return self._row_to_dict(row) if row else None
 
     def get_logs(
         self,
-        source: Optional[str] = None,
-        level: Optional[str] = None,
-        category: Optional[str] = None,
-        user_name: Optional[str] = None,
+        source: str | None = None,
+        level: str | None = None,
+        category: str | None = None,
+        user_name: str | None = None,
         limit: int = 100,
         offset: int = 0,
         order_by: str = "timestamp DESC",
@@ -870,8 +894,17 @@ class Database:
             return 0
 
         columns = [
-            "id", "source", "level", "category", "message", "details",
-            "source_ip", "user_name", "session_id", "event_id", "raw_log",
+            "id",
+            "source",
+            "level",
+            "category",
+            "message",
+            "details",
+            "source_ip",
+            "user_name",
+            "session_id",
+            "event_id",
+            "raw_log",
             "parsed_fields",
         ]
 
@@ -929,15 +962,13 @@ class Database:
 
         return self.get_ioc(ioc_id)
 
-    def get_ioc(self, ioc_id: str) -> Optional[dict]:
+    def get_ioc(self, ioc_id: str) -> dict | None:
         """Get an IOC by ID."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM ioc WHERE id = ?", (ioc_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM ioc WHERE id = ?", (ioc_id,)).fetchone()
         return self._row_to_dict(row) if row else None
 
-    def get_ioc_by_value(self, ioc_type: str, value: str) -> Optional[dict]:
+    def get_ioc_by_value(self, ioc_type: str, value: str) -> dict | None:
         """Get an IOC by type and value."""
         conn = self._get_connection()
         row = conn.execute(
@@ -947,11 +978,11 @@ class Database:
 
     def get_iocs(
         self,
-        ioc_type: Optional[str] = None,
-        status: Optional[str] = None,
-        severity: Optional[str] = None,
-        min_confidence: Optional[float] = None,
-        search: Optional[str] = None,
+        ioc_type: str | None = None,
+        status: str | None = None,
+        severity: str | None = None,
+        min_confidence: float | None = None,
+        search: str | None = None,
         limit: int = 100,
         offset: int = 0,
         order_by: str = "created_at DESC",
@@ -984,12 +1015,21 @@ class Database:
         rows = conn.execute(query, params).fetchall()
         return [self._row_to_dict(row) for row in rows]
 
-    def update_ioc(self, ioc_id: str, **kwargs) -> Optional[dict]:
+    def update_ioc(self, ioc_id: str, **kwargs) -> dict | None:
         """Update an IOC."""
         allowed_fields = {
-            "threat_type", "malware_family", "confidence", "severity",
-            "source", "source_url", "first_seen", "last_seen", "tags",
-            "whois_data", "dns_data", "status",
+            "threat_type",
+            "malware_family",
+            "confidence",
+            "severity",
+            "source",
+            "source_url",
+            "first_seen",
+            "last_seen",
+            "tags",
+            "whois_data",
+            "dns_data",
+            "status",
         }
 
         updates = {}
@@ -1056,23 +1096,19 @@ class Database:
 
         return self.get_user(user_id)
 
-    def get_user(self, user_id: str) -> Optional[dict]:
+    def get_user(self, user_id: str) -> dict | None:
         """Get a user by ID."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM users WHERE id = ?", (user_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         return self._row_to_dict(row) if row else None
 
-    def get_user_by_username(self, username: str) -> Optional[dict]:
+    def get_user_by_username(self, username: str) -> dict | None:
         """Get a user by username."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM users WHERE username = ?", (username,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
         return self._row_to_dict(row) if row else None
 
-    def get_user_by_api_key(self, api_key: str) -> Optional[dict]:
+    def get_user_by_api_key(self, api_key: str) -> dict | None:
         """Get a user by API key."""
         conn = self._get_connection()
         row = conn.execute(
@@ -1081,12 +1117,23 @@ class Database:
         ).fetchone()
         return self._row_to_dict(row) if row else None
 
-    def update_user(self, user_id: str, **kwargs) -> Optional[dict]:
+    def update_user(self, user_id: str, **kwargs) -> dict | None:
         """Update a user."""
         allowed_fields = {
-            "email", "password_hash", "salt", "role", "display_name",
-            "is_active", "last_login", "failed_login_attempts", "locked_until",
-            "mfa_enabled", "mfa_secret", "api_key", "api_key_created", "preferences",
+            "email",
+            "password_hash",
+            "salt",
+            "role",
+            "display_name",
+            "is_active",
+            "last_login",
+            "failed_login_attempts",
+            "locked_until",
+            "mfa_enabled",
+            "mfa_secret",
+            "api_key",
+            "api_key_created",
+            "preferences",
         }
 
         updates = {}
@@ -1142,20 +1189,18 @@ class Database:
 
         return self.get_audit_log(log_id)
 
-    def get_audit_log(self, log_id: str) -> Optional[dict]:
+    def get_audit_log(self, log_id: str) -> dict | None:
         """Get an audit log entry by ID."""
         conn = self._get_connection()
-        row = conn.execute(
-            "SELECT * FROM audit_log WHERE id = ?", (log_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM audit_log WHERE id = ?", (log_id,)).fetchone()
         return self._row_to_dict(row) if row else None
 
     def get_audit_logs(
         self,
-        user_id: Optional[str] = None,
-        action: Optional[str] = None,
-        resource_type: Optional[str] = None,
-        result: Optional[str] = None,
+        user_id: str | None = None,
+        action: str | None = None,
+        resource_type: str | None = None,
+        result: str | None = None,
         limit: int = 100,
         offset: int = 0,
         order_by: str = "timestamp DESC",
@@ -1186,7 +1231,7 @@ class Database:
 
     # ---- Utility Methods ----
 
-    def execute_query(self, query: str, params: Optional[list] = None) -> list[dict]:
+    def execute_query(self, query: str, params: list | None = None) -> list[dict]:
         """Execute a raw query and return results."""
         conn = self._get_connection()
         rows = conn.execute(query, params or []).fetchall()
@@ -1195,8 +1240,14 @@ class Database:
     def get_table_stats(self) -> dict[str, int]:
         """Get row counts for all tables."""
         tables = [
-            "alerts", "events", "incidents", "packets",
-            "logs", "ioc", "users", "audit_log",
+            "alerts",
+            "events",
+            "incidents",
+            "packets",
+            "logs",
+            "ioc",
+            "users",
+            "audit_log",
         ]
         conn = self._get_connection()
         stats = {}
@@ -1205,7 +1256,7 @@ class Database:
             stats[table] = row[0] if row else 0
         return stats
 
-    def backup(self, backup_path: Optional[str] = None) -> str:
+    def backup(self, backup_path: str | None = None) -> str:
         """Create a database backup."""
         if backup_path is None:
             backup_dir = Path(self.config.database.backup_path)
@@ -1223,7 +1274,7 @@ class Database:
             self._local.conn.close()
             self._local.conn = None
 
-    def _serialize(self, value: Any) -> Optional[str]:
+    def _serialize(self, value: Any) -> str | None:
         """Serialize a value to JSON string for storage."""
         if value is None:
             return None
@@ -1231,7 +1282,7 @@ class Database:
             return value
         return json.dumps(value, default=str)
 
-    def _deserialize(self, value: Optional[str]) -> Any:
+    def _deserialize(self, value: str | None) -> Any:
         """Deserialize a JSON string from storage."""
         if value is None:
             return None
@@ -1248,10 +1299,22 @@ class Database:
         result = dict(row)
 
         json_fields = {
-            "indicators", "tags", "parsed_data", "headers", "anomalies",
-            "threat_intel_match", "source_alert_ids", "affected_assets",
-            "timeline", "details", "parsed_fields", "whois_data",
-            "dns_data", "preferences", "old_value", "new_value",
+            "indicators",
+            "tags",
+            "parsed_data",
+            "headers",
+            "anomalies",
+            "threat_intel_match",
+            "source_alert_ids",
+            "affected_assets",
+            "timeline",
+            "details",
+            "parsed_fields",
+            "whois_data",
+            "dns_data",
+            "preferences",
+            "old_value",
+            "new_value",
         }
 
         for field_name in json_fields:
@@ -1268,7 +1331,7 @@ class Database:
         rows = conn.execute(query, params).fetchall()
         return [self._row_to_dict(row) for row in rows]
 
-    def fetch_one(self, query: str, params: tuple = ()) -> Optional[dict]:
+    def fetch_one(self, query: str, params: tuple = ()) -> dict | None:
         """Execute a raw query and return a single result as dict."""
         conn = self._get_connection()
         row = conn.execute(query, params).fetchone()
@@ -1298,26 +1361,29 @@ class Database:
                 stats[key] = 0
 
         try:
-            row = conn.execute(
-                "SELECT COUNT(*) FROM alerts WHERE status = 'open'"
-            ).fetchone()
+            row = conn.execute("SELECT COUNT(*) FROM alerts WHERE status = 'open'").fetchone()
             stats["open_alerts"] = row[0] if row else 0
         except Exception:
             stats["open_alerts"] = 0
 
         try:
-            row = conn.execute(
-                "SELECT COUNT(*) FROM incidents WHERE status != 'closed'"
-            ).fetchone()
+            row = conn.execute("SELECT COUNT(*) FROM incidents WHERE status != 'closed'").fetchone()
             stats["active_incidents"] = row[0] if row else 0
         except Exception:
             stats["active_incidents"] = 0
 
         return stats
 
-    def add_ioc(self, ioc_type: str, value: str, confidence: int = 50,
-                severity: str = "medium", source: str = "",
-                description: str = "", tags: list = None) -> dict:
+    def add_ioc(
+        self,
+        ioc_type: str,
+        value: str,
+        confidence: int = 50,
+        severity: str = "medium",
+        source: str = "",
+        description: str = "",
+        tags: list = None,
+    ) -> dict:
         """Add an IOC (bridge method for API)."""
         return self.create_ioc(
             type=ioc_type,
@@ -1333,8 +1399,9 @@ class Database:
         """Remove an IOC by ID."""
         return self.delete_ioc(ioc_id)
 
-    def add_threat_feed(self, name: str, url: str, feed_type: str,
-                        update_interval: int = 3600) -> dict:
+    def add_threat_feed(
+        self, name: str, url: str, feed_type: str, update_interval: int = 3600
+    ) -> dict:
         """Add a threat intelligence feed."""
         feed_id = str(uuid.uuid4())
         with self.cursor() as cur:
@@ -1361,7 +1428,11 @@ class Database:
             level="warning",
             category="threat_detection",
             message=f"Threat detected: {threat_type} - {value}",
-            details={"threat_type": threat_type, "value": value, "confidence": confidence},
+            details={
+                "threat_type": threat_type,
+                "value": value,
+                "confidence": confidence,
+            },
         )
 
     def log_forensics(self, artifact_name: str, action: str) -> None:

@@ -5,7 +5,8 @@ import enum
 import json
 import logging
 import sqlite3
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 # --- константы вынесены FORGE refactor ---
 CONST_6 = 6
 
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 class AuditAction(enum.Enum):
     """Audit action types."""
+
     # Authentication
     LOGIN = "login"
     LOGOUT = "logout"
@@ -59,10 +61,10 @@ class AuditEntry:
         self,
         action: AuditAction,
         actor: str,
-        target_type: Optional[str] = None,
-        target_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-        ip_address: Optional[str] = None,
+        target_type: str | None = None,
+        target_id: str | None = None,
+        details: dict[str, Any] | None = None,
+        ip_address: str | None = None,
     ):
         self.id = ""
         self.timestamp = datetime.datetime.now(datetime.timezone.utc)
@@ -73,7 +75,7 @@ class AuditEntry:
         self.details = details or {}
         self.ip_address = ip_address
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "timestamp": self.timestamp.isoformat(),
@@ -107,15 +109,9 @@ class AuditTrail:
                 ip_address TEXT
             )
         """)
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_trail(timestamp)"
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_trail(action)"
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_trail(actor)"
-        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_trail(timestamp)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_trail(action)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_trail(actor)")
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_audit_target ON audit_trail(target_type, target_id)"
         )
@@ -126,10 +122,10 @@ class AuditTrail:
         self,
         action: AuditAction,
         actor: str,
-        target_type: Optional[str] = None,
-        target_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
-        ip_address: Optional[str] = None,
+        target_type: str | None = None,
+        target_id: str | None = None,
+        details: dict[str, Any] | None = None,
+        ip_address: str | None = None,
     ) -> AuditEntry:
         entry = AuditEntry(action, actor, target_type, target_id, details, ip_address)
 
@@ -157,15 +153,15 @@ class AuditTrail:
 
     def query(
         self,
-        action: Optional[AuditAction] = None,
-        actor: Optional[str] = None,
-        target_type: Optional[str] = None,
-        target_id: Optional[str] = None,
-        since: Optional[datetime.datetime] = None,
-        until: Optional[datetime.datetime] = None,
+        action: AuditAction | None = None,
+        actor: str | None = None,
+        target_type: str | None = None,
+        target_id: str | None = None,
+        since: datetime.datetime | None = None,
+        until: datetime.datetime | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[AuditEntry]:
+    ) -> list[AuditEntry]:
         conn = sqlite3.connect(self.db_path)
         conditions = []
         params = []
@@ -220,9 +216,9 @@ class AuditTrail:
 
     def get_count(
         self,
-        action: Optional[AuditAction] = None,
-        actor: Optional[str] = None,
-        since: Optional[datetime.datetime] = None,
+        action: AuditAction | None = None,
+        actor: str | None = None,
+        since: datetime.datetime | None = None,
     ) -> int:
         conn = sqlite3.connect(self.db_path)
         conditions = []
@@ -245,5 +241,5 @@ class AuditTrail:
         conn.close()
         return count
 
-    def get_recent(self, limit: int = 50) -> List[AuditEntry]:
+    def get_recent(self, limit: int = 50) -> list[AuditEntry]:
         return self.query(limit=limit)

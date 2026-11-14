@@ -9,12 +9,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
+
 # --- константы вынесены FORGE refactor ---
 CONST_0_15 = 0.15
 CONST_0_3 = 0.3
 CONST_0_5 = 0.5
 CONST_4 = 4
-
 
 
 class IOCType(Enum):
@@ -207,10 +207,17 @@ class IOCManager:
                     iocs.append(ioc)
         return iocs
 
-    def import_from_text(self, text: str, default_type: IOCType | None = None, source: str = "text_import") -> list[IOC]:
+    def import_from_text(
+        self,
+        text: str,
+        default_type: IOCType | None = None,
+        source: str = "text_import",
+    ) -> list[IOC]:
         iocs: list[IOC] = []
         ip_pattern = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
-        domain_pattern = re.compile(r"\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b")
+        domain_pattern = re.compile(
+            r"\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}\b"
+        )
         url_pattern = re.compile(r"https?://[^\s<>\"']+")
         email_pattern = re.compile(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b")
         hash_pattern = re.compile(r"\b[0-9a-fA-F]{32}\b|\b[0-9a-fA-F]{40}\b|\b[0-9a-fA-F]{64}\b")
@@ -309,7 +316,16 @@ class IOCManager:
                     "mx_records": [],
                     "domain_age": "Unknown",
                 }
-        return EnrichmentResult(ioc_id=ioc.ioc_id, enrichment_type="whois", data=data, source="whois_provider") if data else None
+        return (
+            EnrichmentResult(
+                ioc_id=ioc.ioc_id,
+                enrichment_type="whois",
+                data=data,
+                source="whois_provider",
+            )
+            if data
+            else None
+        )
 
     def _enrich_geoip(self, ioc: IOC) -> EnrichmentResult | None:
         if ioc.type != IOCType.IP:
@@ -326,7 +342,12 @@ class IOCManager:
             "is_tor": False,
             "is_vpn": False,
         }
-        return EnrichmentResult(ioc_id=ioc.ioc_id, enrichment_type="geoip", data=data, source="geoip_provider")
+        return EnrichmentResult(
+            ioc_id=ioc.ioc_id,
+            enrichment_type="geoip",
+            data=data,
+            source="geoip_provider",
+        )
 
     def _enrich_reverse_dns(self, ioc: IOC) -> EnrichmentResult | None:
         if ioc.type != IOCType.IP:
@@ -335,7 +356,12 @@ class IOCManager:
             "hostname": f"{ioc.value}.unknown",
             "resolution_confidence": 0.0,
         }
-        return EnrichmentResult(ioc_id=ioc.ioc_id, enrichment_type="reverse_dns", data=data, source="dns_provider")
+        return EnrichmentResult(
+            ioc_id=ioc.ioc_id,
+            enrichment_type="reverse_dns",
+            data=data,
+            source="dns_provider",
+        )
 
     def _enrich_abuse_ch(self, ioc: IOC) -> EnrichmentResult | None:
         data: dict[str, Any] = {}
@@ -355,7 +381,16 @@ class IOCManager:
                 "signature": "unknown",
                 "tags": [],
             }
-        return EnrichmentResult(ioc_id=ioc.ioc_id, enrichment_type="abuse_ch", data=data, source="abuse.ch") if data else None
+        return (
+            EnrichmentResult(
+                ioc_id=ioc.ioc_id,
+                enrichment_type="abuse_ch",
+                data=data,
+                source="abuse.ch",
+            )
+            if data
+            else None
+        )
 
     def _enrich_virustotal(self, ioc: IOC) -> EnrichmentResult | None:
         data: dict[str, Any] = {}
@@ -389,7 +424,16 @@ class IOCManager:
                 "categories": {},
                 "title": "Unknown",
             }
-        return EnrichmentResult(ioc_id=ioc.ioc_id, enrichment_type="virustotal", data=data, source="virustotal") if data else None
+        return (
+            EnrichmentResult(
+                ioc_id=ioc.ioc_id,
+                enrichment_type="virustotal",
+                data=data,
+                source="virustotal",
+            )
+            if data
+            else None
+        )
 
     def _normalize_value(self, ioc_type: IOCType, value: str) -> str:
         value = value.strip()
@@ -446,9 +490,11 @@ class IOCManager:
         for itype in types_to_search:
             for ioc in self.iocs.values():
                 if ioc.type == itype and ioc.status == IOCStatus.ACTIVE:
-                    if query_lower in ioc.value.lower() or query_lower in ioc.description.lower():
-                        results.append(ioc)
-                    elif any(query_lower in tag.lower() for tag in ioc.tags):
+                    if (
+                        query_lower in ioc.value.lower()
+                        or query_lower in ioc.description.lower()
+                        or any(query_lower in tag.lower() for tag in ioc.tags)
+                    ):
                         results.append(ioc)
         return results
 
@@ -503,25 +549,27 @@ class IOCManager:
         for ioc in self.iocs.values():
             if active_only and ioc.status != IOCStatus.ACTIVE:
                 continue
-            results.append({
-                "ioc_id": ioc.ioc_id,
-                "type": ioc.type.value,
-                "value": ioc.value,
-                "confidence": ioc.confidence,
-                "severity": ioc.severity,
-                "score": self.calculate_score(ioc),
-                "source": ioc.source,
-                "description": ioc.description,
-                "tags": ioc.tags,
-                "status": ioc.status.value,
-                "created_at": ioc.created_at.isoformat(),
-                "expires_at": ioc.expires_at.isoformat() if ioc.expires_at else None,
-                "first_seen": ioc.first_seen.isoformat() if ioc.first_seen else None,
-                "last_seen": ioc.last_seen.isoformat() if ioc.last_seen else None,
-                "sightings": ioc.sightings,
-                "mitre_tactics": ioc.mitre_tactics,
-                "enrichment": ioc.enrichment,
-            })
+            results.append(
+                {
+                    "ioc_id": ioc.ioc_id,
+                    "type": ioc.type.value,
+                    "value": ioc.value,
+                    "confidence": ioc.confidence,
+                    "severity": ioc.severity,
+                    "score": self.calculate_score(ioc),
+                    "source": ioc.source,
+                    "description": ioc.description,
+                    "tags": ioc.tags,
+                    "status": ioc.status.value,
+                    "created_at": ioc.created_at.isoformat(),
+                    "expires_at": ioc.expires_at.isoformat() if ioc.expires_at else None,
+                    "first_seen": ioc.first_seen.isoformat() if ioc.first_seen else None,
+                    "last_seen": ioc.last_seen.isoformat() if ioc.last_seen else None,
+                    "sightings": ioc.sightings,
+                    "mitre_tactics": ioc.mitre_tactics,
+                    "enrichment": ioc.enrichment,
+                }
+            )
         return results
 
     def get_statistics(self) -> dict[str, Any]:
@@ -537,7 +585,11 @@ class IOCManager:
             by_source[ioc.source] = by_source.get(ioc.source, 0) + 1
         avg_score = 0.0
         if active > 0:
-            scores = [self.calculate_score(ioc) for ioc in self.iocs.values() if ioc.status == IOCStatus.ACTIVE]
+            scores = [
+                self.calculate_score(ioc)
+                for ioc in self.iocs.values()
+                if ioc.status == IOCStatus.ACTIVE
+            ]
             avg_score = sum(scores) / len(scores) if scores else 0.0
         return {
             "total": total,

@@ -2,7 +2,9 @@
 
 import os
 import tempfile
+
 import pytest
+
 from threatforge.core.config import Config
 from threatforge.core.database import Database
 

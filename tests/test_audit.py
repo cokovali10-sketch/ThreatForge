@@ -3,11 +3,13 @@
 import datetime
 import os
 import tempfile
+
 import pytest
-from threatforge.core.audit import AuditTrail, AuditAction, AuditEntry
+
+from threatforge.core.audit import AuditAction, AuditEntry, AuditTrail
+
 # --- константы вынесены FORGE refactor ---
 CONST_3 = 3
-
 
 
 @pytest.fixture
@@ -22,9 +24,12 @@ def audit_db():
 class TestAuditEntry:
     def test_create_entry(self):
         entry = AuditEntry(
-            AuditAction.LOGIN, "user1",
-            target_type="session", target_id="sess-123",
-            details={"browser": "Chrome"}, ip_address="192.168.1.1"
+            AuditAction.LOGIN,
+            "user1",
+            target_type="session",
+            target_id="sess-123",
+            details={"browser": "Chrome"},
+            ip_address="192.168.1.1",
         )
         assert entry.action == AuditAction.LOGIN
         assert entry.actor == "user1"
@@ -54,9 +59,24 @@ class TestAuditTrail:
         assert len(logins) == 2
 
     def test_query_by_target(self, audit_db):
-        audit_db.log(AuditAction.INCIDENT_CREATED, "analyst", target_type="incident", target_id="inc-1")
-        audit_db.log(AuditAction.INCIDENT_UPDATED, "analyst", target_type="incident", target_id="inc-2")
-        audit_db.log(AuditAction.THREAT_LOGGED, "analyst", target_type="threat", target_id="thr-1")
+        audit_db.log(
+            AuditAction.INCIDENT_CREATED,
+            "analyst",
+            target_type="incident",
+            target_id="inc-1",
+        )
+        audit_db.log(
+            AuditAction.INCIDENT_UPDATED,
+            "analyst",
+            target_type="incident",
+            target_id="inc-2",
+        )
+        audit_db.log(
+            AuditAction.THREAT_LOGGED,
+            "analyst",
+            target_type="threat",
+            target_id="thr-1",
+        )
 
         incidents = audit_db.query(target_type="incident")
         assert len(incidents) == 2

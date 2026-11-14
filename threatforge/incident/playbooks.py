@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any
+
 # --- константы вынесены FORGE refactor ---
 CONST_3 = 3
 CONST_4 = 4
@@ -18,7 +19,6 @@ CONST_60 = 60
 CONST_120 = 120
 CONST_180 = 180
 CONST_240 = 240
-
 
 
 class PlaybookPhase(Enum):
@@ -99,7 +99,9 @@ class PlaybookManager:
     def _create_ransomware_playbook(self) -> Playbook:
         steps = [
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=1,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=1,
                 title="Verify ransomware activity",
                 description="Confirm ransomware execution by checking for encrypted files, ransom notes, and shadow copy deletion",
                 tools=["EDR console", "Volatility", "disk forensic tools"],
@@ -108,7 +110,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_15,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=2,
                 title="Isolate affected systems",
                 description="Network-isolate all affected and potentially affected systems immediately",
                 tools=["Network switch management", "EDR isolation", "firewall rules"],
@@ -124,7 +128,9 @@ class PlaybookManager:
                 approval_role="SOC Manager",
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=CONST_3,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=CONST_3,
                 title="Preserve evidence",
                 description="Collect memory dumps and critical logs before eradication",
                 tools=["WinPmem", "FTK Imager", "Log Collector"],
@@ -137,7 +143,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.ERADICATION,
+                order=CONST_4,
                 title="Identify ransomware variant",
                 description="Use ID Ransomware or No More Ransom to identify the variant and check for decryptors",
                 tools=["ID Ransomware", "No More Ransom", "VirusTotal"],
@@ -145,7 +153,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_5,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.ERADICATION,
+                order=CONST_5,
                 title="Remove malware artifacts",
                 description="Delete ransomware executables, scheduled tasks, and persistence mechanisms",
                 tools=["EDR console", "Autoruns", "PowerShell"],
@@ -157,7 +167,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_6,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.RECOVERY,
+                order=CONST_6,
                 title="Restore from backups",
                 description="Rebuild systems from known-good backups after verifying backup integrity",
                 tools=["Backup solution", "System imaging tools"],
@@ -169,7 +181,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_240,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=7,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.RECOVERY,
+                order=7,
                 title="Reset credentials and harden",
                 description="Reset all potentially compromised credentials and apply security hardening",
                 tools=["Active Directory", "Group Policy", "EDR"],
@@ -187,7 +201,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=8,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.LESSONS_LEARNED,
+                order=8,
                 title="Conduct lessons learned",
                 description="Document findings, timeline, and improvements for future prevention",
                 tools=["Documentation templates"],
@@ -211,7 +227,9 @@ class PlaybookManager:
     def _create_phishing_playbook(self) -> Playbook:
         steps = [
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=1,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=1,
                 title="Analyze phishing email",
                 description="Examine email headers, URLs, and attachments for malicious indicators",
                 tools=["Email gateway", "URLScan.io", "VirusTotal", "sandbox"],
@@ -219,7 +237,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_20,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=2,
                 title="Block malicious indicators",
                 description="Block phishing URLs, sender domains, and malicious attachments at all gateways",
                 tools=["Email gateway", "DNS sinkhole", "proxy filter"],
@@ -233,7 +253,9 @@ class PlaybookManager:
                 estimated_duration_minutes=10,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=CONST_3,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=CONST_3,
                 title="Identify and reset compromised accounts",
                 description="Find users who clicked links or submitted credentials and reset their accounts",
                 tools=["Email gateway logs", "AD console", "SSO logs"],
@@ -241,7 +263,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.ERADICATION,
+                order=CONST_4,
                 title="Remove malicious content",
                 description="Delete phishing emails from all mailboxes and remove any installed malware",
                 tools=["Email admin console", "EDR", "PowerShell"],
@@ -252,7 +276,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.RECOVERY,
+                order=CONST_5,
                 title="Verify and restore",
                 description="Verify no persistent access was gained and restore any affected services",
                 tools=["EDR", "AD audit tools"],
@@ -260,7 +286,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.LESSONS_LEARNED,
+                order=CONST_6,
                 title="Security awareness follow-up",
                 description="Update training materials and conduct targeted awareness for affected users",
                 tools=["Security awareness platform"],
@@ -284,7 +312,9 @@ class PlaybookManager:
     def _create_data_breach_playbook(self) -> Playbook:
         steps = [
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=1,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=1,
                 title="Confirm data breach",
                 description="Verify that sensitive data has been accessed or exfiltrated",
                 tools=["DLP console", "Database audit logs", "Network forensic tools"],
@@ -292,7 +322,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=2,
                 title="Contain the breach",
                 description="Stop ongoing data exfiltration and isolate affected systems",
                 tools=["DLP", "Firewall", "EDR"],
@@ -306,7 +338,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_15,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=CONST_3,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=CONST_3,
                 title="Assess data exposure",
                 description="Determine what data was accessed, volume, and sensitivity classification",
                 tools=["Database logs", "DLP logs", "Cloud access logs"],
@@ -314,7 +348,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.ERADICATION,
+                order=CONST_4,
                 title="Eradicate threat actor",
                 description="Remove all threat actor access and persistence mechanisms",
                 tools=["EDR", "AD audit tools", "Cloud IAM"],
@@ -322,7 +358,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.RECOVERY,
+                order=CONST_5,
                 title="Notify stakeholders",
                 description="Execute notification procedures per legal and regulatory requirements",
                 tools=["Legal counsel", "PR team", "Regulatory filing tools"],
@@ -331,7 +369,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.LESSONS_LEARNED,
+                order=CONST_6,
                 title="Post-breach review",
                 description="Conduct comprehensive review and update data protection controls",
                 tools=["Documentation templates", "Risk assessment tools"],
@@ -355,7 +395,9 @@ class PlaybookManager:
     def _create_insider_threat_playbook(self) -> Playbook:
         steps = [
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=1,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=1,
                 title="Validate insider threat indicators",
                 description="Correlate behavioral indicators with technical evidence to confirm insider threat",
                 tools=["UEBA", "DLP", "SIEM", "HR records"],
@@ -363,7 +405,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=2,
                 title="Covert containment",
                 description="Discreetly limit access without alerting the insider",
                 tools=["AD console", "DLP", "Network monitoring"],
@@ -377,7 +421,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_3,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.ERADICATION,
+                order=CONST_3,
                 title="Collect evidence for HR/legal",
                 description="Preserve all evidence in forensically sound manner for potential legal action",
                 tools=["Forensic imaging tools", "Log archival"],
@@ -385,7 +431,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.ERADICATION,
+                order=CONST_4,
                 title="Execute separation",
                 description="Coordinate with HR for employee separation and access revocation",
                 tools=["AD console", "Badge system", "VPN system"],
@@ -394,7 +442,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.RECOVERY,
+                order=CONST_5,
                 title="Assess and remediate damage",
                 description="Evaluate what data or systems were compromised and remediate",
                 tools=["DLP", "Database audit", "EDR"],
@@ -402,7 +452,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_180,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.LESSONS_LEARNED,
+                order=CONST_6,
                 title="Improve insider threat program",
                 description="Update detection rules, policies, and controls based on findings",
                 tools=["SIEM", "Policy templates"],
@@ -426,7 +478,9 @@ class PlaybookManager:
     def _create_ddos_playbook(self) -> Playbook:
         steps = [
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=1,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=1,
                 title="Identify DDoS attack type and vectors",
                 description="Determine if volumetric, protocol, or application layer attack and identify attack vectors",
                 tools=["Network monitoring", "Flow analysis", "WAF logs"],
@@ -434,7 +488,9 @@ class PlaybookManager:
                 estimated_duration_minutes=10,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=2,
                 title="Activate DDoS mitigation",
                 description="Engage upstream DDoS protection and configure scrubbing centers",
                 tools=["CDN/DDoS provider", "ISP NOC", "BGP Flowspec"],
@@ -449,7 +505,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_15,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=CONST_3,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=CONST_3,
                 title="Protect critical services",
                 description="Ensure critical services remain available through failover and prioritization",
                 tools=["Load balancer", "DNS management", "Cloud auto-scaling"],
@@ -457,7 +515,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_15,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_4,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.RECOVERY,
+                order=CONST_4,
                 title="Monitor and tune mitigation",
                 description="Continuously monitor attack traffic and tune mitigation rules",
                 tools=["DDoS dashboard", "NetFlow", "WAF console"],
@@ -465,7 +525,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_5,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.LESSONS_LEARNED,
+                order=CONST_5,
                 title="Post-attack review",
                 description="Document attack characteristics and improve DDoS resilience",
                 tools=["Documentation templates"],
@@ -489,7 +551,9 @@ class PlaybookManager:
     def _create_malware_playbook(self) -> Playbook:
         steps = [
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=1,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=1,
                 title="Identify malware type and scope",
                 description="Determine malware family, infection vector, and breadth of compromise",
                 tools=["EDR", "Sandbox", "VirusTotal", "YARA rules"],
@@ -497,7 +561,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=2,
                 title="Isolate infected systems",
                 description="Network-isolate all systems showing malware indicators",
                 tools=["EDR isolation", "Network access control"],
@@ -511,7 +577,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_15,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_3,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.ERADICATION,
+                order=CONST_3,
                 title="Remove malware and persistence",
                 description="Delete malware binaries, registry entries, scheduled tasks, and other persistence mechanisms",
                 tools=["EDR", "Autoruns", "PowerShell", "Malware removal tools"],
@@ -523,15 +591,23 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_4,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.RECOVERY,
+                order=CONST_4,
                 title="Verify clean state",
                 description="Scan all systems to verify malware removal and check for secondary payloads",
-                tools=["EDR full scan", "Anti-malware scan", "File integrity monitoring"],
+                tools=[
+                    "EDR full scan",
+                    "Anti-malware scan",
+                    "File integrity monitoring",
+                ],
                 expected_outcome="All systems verified clean",
                 estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_5,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.LESSONS_LEARNED,
+                order=CONST_5,
                 title="Update defenses",
                 description="Create detection signatures and update security controls based on findings",
                 tools=["SIEM", "EDR policy", "Firewall rules"],
@@ -555,7 +631,9 @@ class PlaybookManager:
     def _create_account_compromise_playbook(self) -> Playbook:
         steps = [
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=1,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=1,
                 title="Identify compromised account",
                 description="Determine which accounts are compromised and how the compromise occurred",
                 tools=["SIEM", "Azure AD logs", "VPN logs", "Email logs"],
@@ -563,7 +641,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_20,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=2,
                 title="Disable compromised accounts",
                 description="Immediately disable or reset all compromised accounts",
                 tools=["AD console", "Azure AD", "IAM system"],
@@ -577,7 +657,9 @@ class PlaybookManager:
                 estimated_duration_minutes=10,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=CONST_3,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=CONST_3,
                 title="Assess attacker actions",
                 description="Review logs to determine what actions the attacker performed",
                 tools=["SIEM", "CloudTrail", "Azure AD audit logs"],
@@ -585,7 +667,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.ERADICATION,
+                order=CONST_4,
                 title="Remove attacker persistence",
                 description="Remove any backdoors, forwarding rules, or OAuth apps created by attacker",
                 tools=["AD console", "Azure AD", "Exchange admin"],
@@ -597,7 +681,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_45,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.RECOVERY,
+                order=CONST_5,
                 title="Restore and harden",
                 description="Re-enable accounts with new credentials and apply additional security controls",
                 tools=["AD console", "MFA system"],
@@ -605,7 +691,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.LESSONS_LEARNED,
+                order=CONST_6,
                 title="Improve detection",
                 description="Create detection rules for the observed attack pattern",
                 tools=["SIEM", "SOAR platform"],
@@ -620,7 +708,12 @@ class PlaybookManager:
             description="Playbook for compromised account incidents including identity containment and restoration",
             scenario="account_compromise",
             steps=steps,
-            tags=["account_compromise", "identity", "credential_theft", "unauthorized_access"],
+            tags=[
+                "account_compromise",
+                "identity",
+                "credential_theft",
+                "unauthorized_access",
+            ],
             estimated_total_duration_minutes=total_duration,
         )
         self.playbooks[playbook.playbook_id] = playbook
@@ -629,7 +722,9 @@ class PlaybookManager:
     def _create_lateral_movement_playbook(self) -> Playbook:
         steps = [
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=1,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=1,
                 title="Map lateral movement paths",
                 description="Identify all systems the attacker has accessed and the techniques used",
                 tools=["SIEM", "EDR", "Network forensic tools", "BloodHound"],
@@ -637,7 +732,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_45,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=2,
                 title="Segment and isolate",
                 description="Implement network segmentation to break lateral movement paths",
                 tools=["Firewall", "NAC", "VLAN management"],
@@ -651,7 +748,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=CONST_3,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=CONST_3,
                 title="Identify initial compromise",
                 description="Determine how the attacker first gained access to the network",
                 tools=["EDR", "SIEM", "Proxy logs"],
@@ -659,7 +758,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.ERADICATION,
+                order=CONST_4,
                 title="Remove attacker access",
                 description="Reset credentials and remove persistence on all compromised systems",
                 tools=["EDR", "AD console", "PowerShell"],
@@ -667,7 +768,9 @@ class PlaybookManager:
                 estimated_duration_minutes=90,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.RECOVERY,
+                order=CONST_5,
                 title="Strengthen segmentation",
                 description="Implement permanent network segmentation and access controls",
                 tools=["Firewall", "NAC", "PAM system"],
@@ -675,7 +778,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.LESSONS_LEARNED,
+                order=CONST_6,
                 title="Update detection rules",
                 description="Create rules for lateral movement techniques observed in this incident",
                 tools=["SIEM", "EDR rules"],
@@ -699,7 +804,9 @@ class PlaybookManager:
     def _create_data_exfil_playbook(self) -> Playbook:
         steps = [
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=1,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=1,
                 title="Confirm and scope exfiltration",
                 description="Verify data exfiltration and determine what data was taken",
                 tools=["DLP", "NetFlow", "Cloud access logs", "Database audit"],
@@ -707,7 +814,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=2,
                 title="Stop exfiltration channels",
                 description="Block all identified exfiltration channels immediately",
                 tools=["Firewall", "DLP", "Proxy", "Cloud access security broker"],
@@ -721,7 +830,9 @@ class PlaybookManager:
                 estimated_duration_minutes=10,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=CONST_3,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=CONST_3,
                 title="Identify data source and method",
                 description="Determine which system or database the data was exfiltrated from",
                 tools=["Database audit", "File access logs", "EDR"],
@@ -729,7 +840,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.ERADICATION,
+                order=CONST_4,
                 title="Remediate vulnerability",
                 description="Fix the vulnerability or misconfiguration that enabled the exfiltration",
                 tools=["Vulnerability scanner", "Configuration management"],
@@ -737,7 +850,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.RECOVERY,
+                order=CONST_5,
                 title="Notify and monitor",
                 description="Notify affected parties and implement enhanced monitoring for similar activity",
                 tools=["SIEM", "DLP", "Notification templates"],
@@ -746,7 +861,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.LESSONS_LEARNED,
+                order=CONST_6,
                 title="Improve DLP controls",
                 description="Update DLP rules and data classification based on incident findings",
                 tools=["DLP console", "Data classification tools"],
@@ -770,15 +887,23 @@ class PlaybookManager:
     def _create_supply_chain_playbook(self) -> Playbook:
         steps = [
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=1,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=1,
                 title="Identify compromised component",
                 description="Determine which vendor, library, or update has been compromised",
-                tools=["Software composition analysis", "Vulnerability scanner", "Vendor advisories"],
+                tools=[
+                    "Software composition analysis",
+                    "Vulnerability scanner",
+                    "Vendor advisories",
+                ],
                 expected_outcome="Compromised supply chain component identified",
                 estimated_duration_minutes=CONST_60,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.CONTAINMENT, order=2,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.CONTAINMENT,
+                order=2,
                 title="Isolate and block",
                 description="Isolate systems running the compromised component and block its execution",
                 tools=["EDR", "Application whitelisting", "Firewall"],
@@ -792,7 +917,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_30,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.DETECTION, order=CONST_3,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.DETECTION,
+                order=CONST_3,
                 title="Assess impact scope",
                 description="Determine all systems affected by the compromised component across the environment",
                 tools=["Asset management", "SCCM", "Endpoint inventory"],
@@ -800,7 +927,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_120,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.ERADICATION, order=CONST_4,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.ERADICATION,
+                order=CONST_4,
                 title="Remove compromised component",
                 description="Remove the compromised component from all affected systems",
                 tools=["SCCM", "Package manager", "Manual removal scripts"],
@@ -808,7 +937,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_240,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.RECOVERY, order=CONST_5,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.RECOVERY,
+                order=CONST_5,
                 title="Restore with verified versions",
                 description="Reinstall verified clean versions of the component from trusted sources",
                 tools=["Package manager", "Vendor support"],
@@ -817,7 +948,9 @@ class PlaybookManager:
                 estimated_duration_minutes=CONST_180,
             ),
             PlaybookStep(
-                step_id=str(uuid.uuid4()), phase=PlaybookPhase.LESSONS_LEARNED, order=CONST_6,
+                step_id=str(uuid.uuid4()),
+                phase=PlaybookPhase.LESSONS_LEARNED,
+                order=CONST_6,
                 title="Strengthen supply chain security",
                 description="Implement additional supply chain security controls and vendor assessment",
                 tools=["Vendor risk assessment", "SBOM tools"],
@@ -864,21 +997,25 @@ class PlaybookManager:
         playbook_steps: list[PlaybookStep] = []
         for i, step_data in enumerate(steps, 1):
             phase = PlaybookPhase(step_data.get("phase", "detection"))
-            playbook_steps.append(PlaybookStep(
-                step_id=str(uuid.uuid4()),
-                phase=phase,
-                order=i,
-                title=step_data.get("title", f"Step {i}"),
-                description=step_data.get("description", ""),
-                tools=step_data.get("tools", []),
-                commands=step_data.get("commands", []),
-                contacts=step_data.get("contacts", []),
-                containment_actions=step_data.get("containment_actions", []),
-                expected_outcome=step_data.get("expected_outcome", ""),
-                estimated_duration_minutes=step_data.get("estimated_duration_minutes", CONST_15),
-                requires_approval=step_data.get("requires_approval", False),
-                approval_role=step_data.get("approval_role", ""),
-            ))
+            playbook_steps.append(
+                PlaybookStep(
+                    step_id=str(uuid.uuid4()),
+                    phase=phase,
+                    order=i,
+                    title=step_data.get("title", f"Step {i}"),
+                    description=step_data.get("description", ""),
+                    tools=step_data.get("tools", []),
+                    commands=step_data.get("commands", []),
+                    contacts=step_data.get("contacts", []),
+                    containment_actions=step_data.get("containment_actions", []),
+                    expected_outcome=step_data.get("expected_outcome", ""),
+                    estimated_duration_minutes=step_data.get(
+                        "estimated_duration_minutes", CONST_15
+                    ),
+                    requires_approval=step_data.get("requires_approval", False),
+                    approval_role=step_data.get("approval_role", ""),
+                )
+            )
         total_duration = sum(s.estimated_duration_minutes for s in playbook_steps)
         playbook = Playbook(
             playbook_id=str(uuid.uuid4()),
@@ -913,11 +1050,13 @@ class PlaybookManager:
         if not execution:
             return False
         execution.completed_steps.append(step_id)
-        execution.notes.append({
-            "step_id": step_id,
-            "completed_at": datetime.utcnow().isoformat(),
-            "notes": notes,
-        })
+        execution.notes.append(
+            {
+                "step_id": step_id,
+                "completed_at": datetime.utcnow().isoformat(),
+                "notes": notes,
+            }
+        )
         playbook = self.playbooks.get(execution.playbook_id)
         if playbook:
             remaining = [s for s in playbook.steps if s.step_id not in execution.completed_steps]
@@ -968,7 +1107,9 @@ class PlaybookManager:
         total_steps = sum(len(p.steps) for p in self.playbooks.values())
         avg_duration = 0
         if total > 0:
-            avg_duration = sum(p.estimated_total_duration_minutes for p in self.playbooks.values()) / total
+            avg_duration = (
+                sum(p.estimated_total_duration_minutes for p in self.playbooks.values()) / total
+            )
         return {
             "total_playbooks": total,
             "enabled_playbooks": enabled,

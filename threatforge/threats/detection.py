@@ -3,15 +3,16 @@ from __future__ import annotations
 import re
 import uuid
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
+
 # --- константы вынесены FORGE refactor ---
 CONST_5 = 5
 CONST_60 = 60
 CONST_1024 = 1024
-
 
 
 class Severity(Enum):
@@ -295,7 +296,9 @@ class ThreatDetector:
             raw_event=event,
         )
 
-    def check_brute_force(self, events: list[dict], threshold: int = CONST_5, window_seconds: int = 300) -> list[Alert]:
+    def check_brute_force(
+        self, events: list[dict], threshold: int = CONST_5, window_seconds: int = 300
+    ) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("BRUTE_FORCE_001")
         if not rule or not rule.enabled:
@@ -326,7 +329,12 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_port_scan(self, events: list[dict], port_threshold: int = 10, window_seconds: int = CONST_60) -> list[Alert]:
+    def check_port_scan(
+        self,
+        events: list[dict],
+        port_threshold: int = 10,
+        window_seconds: int = CONST_60,
+    ) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("PORT_SCAN_002")
         if not rule or not rule.enabled:
@@ -358,7 +366,12 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_dns_tunneling(self, queries: list[dict], entropy_threshold: float = 3.5, length_threshold: int = 50) -> list[Alert]:
+    def check_dns_tunneling(
+        self,
+        queries: list[dict],
+        entropy_threshold: float = 3.5,
+        length_threshold: int = 50,
+    ) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("DNS_TUNNEL_003")
         if not rule or not rule.enabled:
@@ -387,7 +400,12 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_c2_beacon(self, connections: list[dict], interval_tolerance: float = 0.3, min_beacons: int = CONST_5) -> list[Alert]:
+    def check_c2_beacon(
+        self,
+        connections: list[dict],
+        interval_tolerance: float = 0.3,
+        min_beacons: int = CONST_5,
+    ) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("C2_BEACON_004")
         if not rule or not rule.enabled:
@@ -419,7 +437,11 @@ class ThreatDetector:
                     timestamp=datetime.utcnow(),
                     mitre_tactic=rule.mitre_tactic,
                     mitre_technique=rule.mitre_technique,
-                    raw_event={"beacon_count": len(conns), "avg_interval": avg_interval, "jitter": jitter},
+                    raw_event={
+                        "beacon_count": len(conns),
+                        "avg_interval": avg_interval,
+                        "jitter": jitter,
+                    },
                 )
                 alerts.append(alert)
                 self.alerts.append(alert)
@@ -432,7 +454,15 @@ class ThreatDetector:
         rule = self.rules.get("LATERAL_MOVE_005")
         if not rule or not rule.enabled:
             return alerts
-        suspicious_tools = {"psexec", "wmic", "winrm", "ssh", "smbexec", "mimikatz", "wmiexec"}
+        suspicious_tools = {
+            "psexec",
+            "wmic",
+            "winrm",
+            "ssh",
+            "smbexec",
+            "mimikatz",
+            "wmiexec",
+        }
         for event in events:
             cmd = event.get("command", "").lower()
             process = event.get("process_name", "").lower()
@@ -456,7 +486,9 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_data_exfiltration(self, events: list[dict], size_threshold_mb: float = 100) -> list[Alert]:
+    def check_data_exfiltration(
+        self, events: list[dict], size_threshold_mb: float = 100
+    ) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("DATA_EXFIL_006")
         if not rule or not rule.enabled:
@@ -539,7 +571,7 @@ class ThreatDetector:
             params = req.get("parameters", {})
             url = req.get("url", "")
             body = req.get("body", "")
-            combined = f"{url} {str(params)} {body}"
+            combined = f"{url} {params!s} {body}"
             for pattern in sqli_patterns:
                 if re.search(pattern, combined, re.IGNORECASE):
                     alert = Alert(
@@ -581,7 +613,7 @@ class ThreatDetector:
             params = req.get("parameters", {})
             url = req.get("url", "")
             body = req.get("body", "")
-            combined = f"{url} {str(params)} {body}"
+            combined = f"{url} {params!s} {body}"
             for pattern in xss_patterns:
                 if re.search(pattern, combined, re.IGNORECASE):
                     alert = Alert(
@@ -650,10 +682,22 @@ class ThreatDetector:
         if not rule or not rule.enabled:
             return alerts
         suspicious_processes = {
-            "powershell.exe", "cmd.exe", "wscript.exe", "cscript.exe",
-            "mshta.exe", "regsvr32.exe", "rundll32.exe", "certutil.exe",
-            "bitsadmin.exe", "msiexec.exe", "installutil.exe", "msbuild.exe",
-            "regasm.exe", "regsvcs.exe", "wmic.exe", "at.exe",
+            "powershell.exe",
+            "cmd.exe",
+            "wscript.exe",
+            "cscript.exe",
+            "mshta.exe",
+            "regsvr32.exe",
+            "rundll32.exe",
+            "certutil.exe",
+            "bitsadmin.exe",
+            "msiexec.exe",
+            "installutil.exe",
+            "msbuild.exe",
+            "regasm.exe",
+            "regsvcs.exe",
+            "wmic.exe",
+            "at.exe",
         }
         for event in events:
             process = event.get("process_name", "").lower()
@@ -678,7 +722,9 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_anomalous_login(self, events: list[dict], known_locations: dict[str, set[str]] | None = None) -> list[Alert]:
+    def check_anomalous_login(
+        self, events: list[dict], known_locations: dict[str, set[str]] | None = None
+    ) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("ANOM_LOGIN_014")
         if not rule or not rule.enabled:
@@ -775,7 +821,9 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_scanning_activity(self, events: list[dict], target_threshold: int = CONST_5) -> list[Alert]:
+    def check_scanning_activity(
+        self, events: list[dict], target_threshold: int = CONST_5
+    ) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("SCAN_ACT_017")
         if not rule or not rule.enabled:
@@ -873,7 +921,12 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_api_abuse(self, events: list[dict], rate_threshold: int = 100, window_seconds: int = CONST_60) -> list[Alert]:
+    def check_api_abuse(
+        self,
+        events: list[dict],
+        rate_threshold: int = 100,
+        window_seconds: int = CONST_60,
+    ) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("API_ABUSE_020")
         if not rule or not rule.enabled:
@@ -896,7 +949,10 @@ class ThreatDetector:
                     timestamp=datetime.utcnow(),
                     mitre_tactic=rule.mitre_tactic,
                     mitre_technique=rule.mitre_technique,
-                    raw_event={"request_count": len(reqs), "endpoints": sorted(unique_endpoints)},
+                    raw_event={
+                        "request_count": len(reqs),
+                        "endpoints": sorted(unique_endpoints),
+                    },
                 )
                 alerts.append(alert)
                 self.alerts.append(alert)
@@ -904,7 +960,9 @@ class ThreatDetector:
                 rule.last_triggered = datetime.utcnow()
         return alerts
 
-    def check_credential_stuffing(self, events: list[dict], unique_users_threshold: int = 10) -> list[Alert]:
+    def check_credential_stuffing(
+        self, events: list[dict], unique_users_threshold: int = 10
+    ) -> list[Alert]:
         alerts: list[Alert] = []
         rule = self.rules.get("CRED_STUFF_009")
         if not rule or not rule.enabled:
@@ -958,7 +1016,9 @@ class ThreatDetector:
             r"pool\.minexmr",
         ]
         for event in events:
-            combined = f"{event.get('process_name', '')} {event.get('command', '')} {event.get('url', '')}"
+            combined = (
+                f"{event.get('process_name', '')} {event.get('command', '')} {event.get('url', '')}"
+            )
             for pattern in mining_indicators:
                 if re.search(pattern, combined, re.IGNORECASE):
                     alert = Alert(
@@ -1027,6 +1087,7 @@ class ThreatDetector:
 
     def _calculate_entropy(self, text: str) -> float:
         import math
+
         if not text:
             return 0.0
         freq: dict[str, int] = {}
@@ -1078,7 +1139,9 @@ class ThreatDetector:
             }
         return stats
 
-    def get_alerts(self, severity: Severity | None = None, include_false_positives: bool = False) -> list[Alert]:
+    def get_alerts(
+        self, severity: Severity | None = None, include_false_positives: bool = False
+    ) -> list[Alert]:
         result = self.alerts
         if severity:
             result = [a for a in result if a.severity == severity]

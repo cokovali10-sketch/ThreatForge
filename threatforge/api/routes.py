@@ -2,19 +2,18 @@
 
 import json
 import time
-from typing import Dict, List
 
-from aiohttp import web, WSMsgType
+from aiohttp import WSMsgType, web
 
 from threatforge.core.database import Database
 from threatforge.core.logger import Logger
 from threatforge.network.scanner import PortScanner
+
 # --- константы вынесены FORGE refactor ---
 CONST_50 = 50
 CONST_201 = 201
 CONST_400 = 400
 CONST_404 = 404
-
 
 
 class APIRoutes:
@@ -24,7 +23,7 @@ class APIRoutes:
         self.db = Database()
         self.logger = Logger()
         self.scanner = PortScanner()
-        self._ws_clients: Dict[str, List[web.WebSocketResponse]] = {
+        self._ws_clients: dict[str, list[web.WebSocketResponse]] = {
             "events": [],
             "alerts": [],
         }
@@ -44,7 +43,9 @@ class APIRoutes:
     # Health & Stats
 
     async def health_check(self, request: web.Request) -> web.Response:
-        return web.json_response({"status": "healthy", "timestamp": time.time(), "version": "1.0.0"})
+        return web.json_response(
+            {"status": "healthy", "timestamp": time.time(), "version": "1.0.0"}
+        )
 
     async def get_stats(self, request: web.Request) -> web.Response:
         stats = self.db.get_stats()
@@ -69,7 +70,9 @@ class APIRoutes:
         params.extend([limit, offset])
         alerts = self.db.fetch_all(query, tuple(params))
         total = self.db.fetch_one("SELECT COUNT(*) as count FROM alerts")["count"]
-        return web.json_response({"alerts": alerts, "total": total, "limit": limit, "offset": offset})
+        return web.json_response(
+            {"alerts": alerts, "total": total, "limit": limit, "offset": offset}
+        )
 
     async def acknowledge_alert(self, request: web.Request) -> web.Response:
         alert_id = request.match_info["id"]
@@ -104,7 +107,9 @@ class APIRoutes:
         params.extend([limit, offset])
         events = self.db.fetch_all(query, tuple(params))
         total = self.db.fetch_one("SELECT COUNT(*) as count FROM events")["count"]
-        return web.json_response({"events": events, "total": total, "limit": limit, "offset": offset})
+        return web.json_response(
+            {"events": events, "total": total, "limit": limit, "offset": offset}
+        )
 
     async def search_events(self, request: web.Request) -> web.Response:
         q = request.query.get("q", "")
@@ -181,23 +186,29 @@ class APIRoutes:
         if not incident:
             return web.json_response({"error": "Incident not found"}, status=CONST_404)
         timeline = json.loads(incident.get("timeline", "[]"))
-        timeline.append({
-            "timestamp": incident["created_at"],
-            "event": "Incident created",
-            "user": "system",
-        })
+        timeline.append(
+            {
+                "timestamp": incident["created_at"],
+                "event": "Incident created",
+                "user": "system",
+            }
+        )
         if incident.get("updated_at"):
-            timeline.append({
-                "timestamp": incident["updated_at"],
-                "event": "Incident updated",
-                "user": "system",
-            })
+            timeline.append(
+                {
+                    "timestamp": incident["updated_at"],
+                    "event": "Incident updated",
+                    "user": "system",
+                }
+            )
         if incident.get("closed_at"):
-            timeline.append({
-                "timestamp": incident["closed_at"],
-                "event": "Incident closed",
-                "user": "system",
-            })
+            timeline.append(
+                {
+                    "timestamp": incident["closed_at"],
+                    "event": "Incident closed",
+                    "user": "system",
+                }
+            )
         timeline.sort(key=lambda x: x["timestamp"])
         return web.json_response({"timeline": timeline})
 
@@ -217,7 +228,8 @@ class APIRoutes:
     async def network_connections(self, request: web.Request) -> web.Response:
         limit = int(request.query.get("limit", 100))
         connections = self.db.fetch_all(
-            "SELECT * FROM network_connections ORDER BY last_seen DESC LIMIT ?", (limit,)
+            "SELECT * FROM network_connections ORDER BY last_seen DESC LIMIT ?",
+            (limit,),
         )
         return web.json_response({"connections": connections})
 
@@ -286,9 +298,13 @@ class APIRoutes:
         url = data.get("url")
         feed_type = data.get("feed_type")
         if not name or not url or not feed_type:
-            return web.json_response({"error": "name, url, and feed_type are required"}, status=CONST_400)
+            return web.json_response(
+                {"error": "name, url, and feed_type are required"}, status=CONST_400
+            )
         feed = self.db.add_threat_feed(
-            name=name, url=url, feed_type=feed_type,
+            name=name,
+            url=url,
+            feed_type=feed_type,
             update_interval=data.get("update_interval", 3600),
         )
         return web.json_response(feed, status=CONST_201)

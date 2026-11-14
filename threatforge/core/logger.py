@@ -12,7 +12,7 @@ import sys
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from threatforge.core.config import Config
 
@@ -20,7 +20,7 @@ from threatforge.core.config import Config
 class JSONFormatter(logging.Formatter):
     """Formats log records as structured JSON."""
 
-    def __init__(self, indent: Optional[int] = None):
+    def __init__(self, indent: int | None = None):
         super().__init__()
         self.indent = indent
 
@@ -93,7 +93,7 @@ class Logger:
     file rotation, and optional syslog forwarding.
     """
 
-    def __init__(self, name: str = "threatforge", config: Optional[Config] = None):
+    def __init__(self, name: str = "threatforge", config: Config | None = None):
         self.config = config or Config()
         self.name = name
         self._logger = logging.getLogger(name)

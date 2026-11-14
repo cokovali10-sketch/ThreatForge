@@ -1,0 +1,19 @@
+target-version = "py310"
+line-length = 100
+
+[lint]
+# Errors, pyflakes, import order, bugbear, comprehensions and simplify:
+# rules that catch defects and keep imports stable. Timezone, blind-except
+# and logging rules are intentionally out of scope for this codebase.
+select = ["E", "F", "I", "B", "C4", "UP", "SIM"]
+ignore = [
+    "E501",   # line length is handled by the formatter
+    "B904",   # exception chaining is not used consistently in this codebase
+    "SIM102", # nested ifs are clearer than compound conditions here
+    "C401",   # set(generator) is intentional and reads better here
+    "SIM105", # try/except/pass is intentional in these guard blocks
+    "B007",   # unused loop variables are intentional
+]
+
+[lint.isort]
+known-first-party = ["threatforge"]

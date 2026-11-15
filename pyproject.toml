@@ -1,0 +1,7 @@
+[tool.bandit]
+# B608 (hardcoded_sql_expressions): every query here is assembled from static
+#   fragments and executed with `?` placeholders, so the string building is not
+#   attacker controlled.
+# B104 (hardcoded_bind_all_interfaces): 0.0.0.0 is the intended default for a
+#   containerised deployment; the bind address is configurable.
+skips = ["B608", "B104"]

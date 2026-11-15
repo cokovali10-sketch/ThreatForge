@@ -101,7 +101,7 @@ class Database:
         destination_port INTEGER,
         protocol TEXT,
         indicators TEXT,
-        status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'investigating', 'resolved', 'false_positive', 'escalated')),
+        status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'acknowledged', 'investigating', 'resolved', 'false_positive', 'escalated')),
         assignee TEXT,
         resolution_notes TEXT,
         mitre_attack_id TEXT,
